@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#343c2b">
+  <meta name="description" content="Search the Trendora product collection.">
+  <title>Search products — Trendora</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="css/search.css">
+  <script src="js/main.js" defer></script>
+  <script src="js/experience.js" defer></script>
+</head>
+<body class="store-page search-page">
+  <a class="skip-link" href="#searchResults">Skip to search results</a>
+  <main class="search-shell" id="main-content">
+    <nav class="search-breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span>›</span><span>Search</span></nav>
+    <section class="search-hero" aria-labelledby="searchTitle">
+      <span class="eyebrow">FIND YOUR NEXT FAVOURITE</span>
+      <h1 id="searchTitle">Search the collection.</h1>
+      <form id="resultsSearchForm" class="results-search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m16 16 5 5"/></svg>
+        <input id="resultsSearchInput" name="q" type="search" placeholder="Search products, categories and more" aria-label="Search products" autocomplete="off">
+        <button type="submit">Search</button>
+      </form>
+    </section>
+    <section class="search-results" id="searchResults" aria-labelledby="resultsHeading">
+      <header class="results-toolbar">
+        <div><h2 id="resultsHeading">All products</h2><p id="resultsCount" role="status" aria-live="polite">Loading products…</p></div>
+        <label>Sort by<select id="resultsSort"><option value="relevance">Relevance</option><option value="priceLow">Price: Low to high</option><option value="priceHigh">Price: High to low</option><option value="name">Name: A to Z</option></select></label>
+      </header>
+      <div class="search-grid" id="searchResultsGrid" aria-busy="true">
+        <div class="search-skeleton"></div><div class="search-skeleton"></div><div class="search-skeleton"></div><div class="search-skeleton"></div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="js/search.js"></script>
+</body>
+</html>

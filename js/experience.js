@@ -90,6 +90,8 @@
   });
   function unavailableImage(image) {
     if(image.id === 'heroProductImage' || image.id === 'storyProductImage' || image.id === 'modalMainImage' || image.closest('.modal, #imgModal')) return;
+    if (!image.getAttribute('src')) return;
+    image.dataset.loadFailed = 'true';
     image.hidden = true;
     const parent = image.parentElement;
     if(parent && !parent.querySelector('.image-unavailable')) {
@@ -97,6 +99,13 @@
     }
   }
   document.addEventListener('error', event => { if(event.target.tagName === 'IMG') unavailableImage(event.target); }, true);
+  document.addEventListener('load', event => {
+    const image = event.target;
+    if (image.tagName !== 'IMG' || !image.dataset.loadFailed) return;
+    image.hidden = false;
+    delete image.dataset.loadFailed;
+    image.parentElement?.querySelector(':scope > .image-unavailable')?.remove();
+  }, true);
   document.querySelectorAll('img[src=""]').forEach(image => {
     if(image.id !== 'productImage') unavailableImage(image);
   });

@@ -1,14 +1,7 @@
-import { normalizeCart } from "./commerce.mjs";
+import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs";
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import {
-    getAuth, onAuthStateChanged, signOut,
-    setPersistence, browserLocalPersistence,
-    signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import {
-    getFirestore, collection, onSnapshot, doc, updateDoc, setDoc, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  let auth, db, collection, onSnapshot, doc, updateDoc, setDoc, serverTimestamp;
+  let signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile;
 
   const firebaseConfig = {
      apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
@@ -19,10 +12,25 @@ import { normalizeCart } from "./commerce.mjs";
     appId: "1:1080352553475:web:850319561617a21fdfec36"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  setPersistence(auth, browserLocalPersistence).catch(console.error);
+  // Shop rendering must not depend on an external authentication SDK loading.
+  const firebaseReady = Promise.all([
+    import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"),
+    import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")
+  ]).then(([appMod, authMod, dbMod]) => {
+    const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
+    auth = authMod.getAuth(app);
+    db = dbMod.getFirestore(app);
+    ({ collection, onSnapshot, doc, updateDoc, setDoc, serverTimestamp } = dbMod);
+    ({ signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = authMod);
+    authMod.setPersistence(auth, authMod.browserLocalPersistence).catch(console.error);
+    authMod.onAuthStateChanged(auth, user => {
+      currentUser = user || null;
+      updateCartCount();
+    });
+    loadProducts();
+    return true;
+  }).catch(error => { console.warn("Account services unavailable", error); return false; });
 
   const cartCountElement = document.getElementById("cartCount");
   const notification = document.getElementById("notification");
@@ -53,6 +61,8 @@ import { normalizeCart } from "./commerce.mjs";
   let productsUnsubscribe = null;
   let productsLoaded = false;
   let productsError = false;
+  let catalogFallbackTimer = null;
+  let catalogFallbackRequest = null;
   let activeCategory = "all";
   let pendingReturnUrl = null;
   const WISHLIST_KEY = "trendora-wishlist";
@@ -109,6 +119,7 @@ import { normalizeCart } from "./commerce.mjs";
     return data.imageUrl ? [data.imageUrl] : [];
   }
   function getCreatedMillis(item){
+    if(item.createdAt instanceof Date) return item.createdAt.getTime();
     if(item.createdAt?.toMillis) return item.createdAt.toMillis();
     if(item.createdAt?.seconds) return item.createdAt.seconds * 1000;
     return 0;
@@ -195,6 +206,7 @@ import { normalizeCart } from "./commerce.mjs";
     loginSubmit.disabled = true;
     loginSubmit.innerHTML = '<span class="mini-spin"></span> Logging in…';
     try {
+      if (!await firebaseReady) throw new Error("Account service unavailable. Please try again.");
       await signInWithEmailAndPassword(auth, email, password);
       closeAuthModal();
       showNotification("Welcome back!");
@@ -212,6 +224,7 @@ import { normalizeCart } from "./commerce.mjs";
     signupSubmit.disabled = true;
     signupSubmit.innerHTML = '<span class="mini-spin"></span> Creating account…';
     try {
+      if (!await firebaseReady) throw new Error("Account service unavailable. Please try again.");
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       if(name) await updateProfile(cred.user, { displayName: name });
       try {
@@ -252,32 +265,53 @@ import { normalizeCart } from "./commerce.mjs";
     showNotification(`"${name}" added to cart`);
   }
 
-  // AUTH
-  onAuthStateChanged(auth, user => {
-    currentUser = user || null;
-    if (user) initOrdersListener();
-    loadProducts();
-    updateCartCount();
-  });
-
   // PRODUCTS
+  let liveCatalogReceived = false;
+  function applyProducts(products, source = "live"){
+    productsData = Array.isArray(products) ? products : [];
+    productsLoaded = true;
+    productsError = false;
+    renderCategories();
+    renderEditorialImages();
+    renderProducts();
+    hidePageLoader();
+    if (source === "saved catalog") shopCount.textContent += " · Saved copy; reconnect for latest availability";
+  }
+  async function loadCatalogFallback(){
+    if (catalogFallbackRequest) return catalogFallbackRequest;
+    catalogFallbackRequest = fetchProducts()
+      .then(products => { if (!liveCatalogReceived) applyProducts(products, "network"); })
+      .catch(error => {
+        console.error("Catalog fallback failed", error);
+        // A late failed request must never erase products already on screen.
+        if (productsLoaded && !productsError) return;
+        const cached = readCachedProducts({ allowStale: true });
+        if (cached.length) applyProducts(cached, "saved catalog");
+        else {
+          productsError = true;
+          productsLoaded = true;
+          renderProducts();
+          hidePageLoader();
+        }
+      })
+      .finally(() => { catalogFallbackRequest = null; });
+    return catalogFallbackRequest;
+  }
   function loadProducts(){
-    if(productsUnsubscribe) return;
+    if(productsUnsubscribe || !db) return;
     productsUnsubscribe = onSnapshot(collection(db,"products"), snapshot=>{
-      productsData = snapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()}));
-      productsLoaded = true;
-      productsError = false;
-      renderCategories();
-      renderEditorialImages();
-      renderProducts();
-      hidePageLoader();
+      if (snapshot.metadata.fromCache) return;
+      liveCatalogReceived = true;
+      clearTimeout(catalogFallbackTimer);
+      applyProducts(snapshot.docs.map(docSnap => ({...docSnap.data(), id: docSnap.id})));
     }, err => {
       console.error(err);
-      productsError = true;
-      productsLoaded = true;
-      renderProducts();
-      hidePageLoader();
+      clearTimeout(catalogFallbackTimer);
+      loadCatalogFallback();
     });
+    // Firestore's realtime channel can remain pending indefinitely on restrictive networks.
+    // Keep it for live updates, but never leave the storefront waiting on it.
+    catalogFallbackTimer = setTimeout(loadCatalogFallback, 3500);
   }
   function hidePageLoader(){ setTimeout(()=>pageLoader.classList.add("hide"), 300); }
   function skeletonMarkup(n=8){
@@ -309,7 +343,7 @@ import { normalizeCart } from "./commerce.mjs";
       productsDiv.innerHTML = '<div class="empty-state"><h4>We couldn’t load the collection</h4><p>Check your connection and try again.</p><button type="button" id="retryProducts">Try again</button></div>';
       shopCount.textContent = "Collection unavailable";
       sectionCount.textContent = "";
-      document.getElementById("retryProducts").onclick = () => { productsUnsubscribe?.(); productsUnsubscribe = null; productsLoaded = false; renderProducts(); loadProducts(); };
+      document.getElementById("retryProducts").onclick = () => { productsUnsubscribe?.(); productsUnsubscribe = null; productsLoaded = false; productsError = false; catalogFallbackRequest = null; renderProducts(); loadCatalogFallback(); loadProducts(); };
       return;
     }
     const products = getFilteredProducts();
@@ -453,6 +487,6 @@ import { normalizeCart } from "./commerce.mjs";
   const query = new URLSearchParams(location.search).get("q");
   if(query) productSearch.value = query;
   renderProducts();
-  loadProducts();
+  loadCatalogFallback();
   updateCartCount();
   setTimeout(hidePageLoader, 6000);

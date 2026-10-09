@@ -40,3 +40,61 @@ export function discountFor(code, subtotal, uid, now = Date.now()) {
 export function canCancel(order) {
   return !['Shipped','Out for Delivery','Delivered','Completed','Cancelled','Cancelled by User'].includes(order.orderStatus || 'Pending');
 }
+
+// Catalog reads use Firestore's REST API as a short-lived fallback when the
+// SDK's realtime connection cannot be established by a shopper's network.
+const catalogProjectId = 'trendora-1cd23';
+const catalogApiKey = 'AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo';
+const catalogCacheKey = 'trendora-catalog-cache-v1';
+const catalogCacheMaxAge = 24 * 60 * 60 * 1000;
+function decodeCatalogValue(value = {}) {
+  if ('stringValue' in value) return value.stringValue;
+  if ('integerValue' in value) return Number(value.integerValue);
+  if ('doubleValue' in value) return Number(value.doubleValue);
+  if ('booleanValue' in value) return value.booleanValue;
+  if ('nullValue' in value) return null;
+  if ('timestampValue' in value) return new Date(value.timestampValue);
+  if ('arrayValue' in value) return (value.arrayValue.values || []).map(decodeCatalogValue);
+  if ('mapValue' in value) return decodeCatalogFields(value.mapValue.fields || {});
+  return undefined;
+}
+function decodeCatalogFields(fields = {}) { return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, decodeCatalogValue(value)])); }
+function catalogProduct(document) { return { ...decodeCatalogFields(document.fields), id: document.name.split('/').pop() }; }
+function cacheCatalog(products) { try { localStorage.setItem(catalogCacheKey, JSON.stringify({ savedAt: Date.now(), products })); } catch (_) {} }
+export function readCachedProducts({ allowStale = false } = {}) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(catalogCacheKey) || 'null');
+    if (!cached || !Array.isArray(cached.products) || (!allowStale && Date.now() - Number(cached.savedAt || 0) > catalogCacheMaxAge)) return [];
+    return cached.products;
+  } catch (_) { return []; }
+}
+async function fetchCatalogJson(path) {
+  const separator = path.includes('?') ? '&' : '?';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`https://firestore.googleapis.com/v1/projects/${catalogProjectId}/databases/(default)/documents/${path}${separator}key=${catalogApiKey}`, { headers: { Accept: 'application/json' }, signal: controller.signal });
+    if (!response.ok) {
+      const error = new Error(`Catalog request failed (${response.status})`);
+      error.status = response.status;
+      throw error;
+    }
+    return await response.json();
+  } finally { clearTimeout(timeout); }
+}
+export async function fetchProducts() {
+  const products = [];
+  let token = '';
+  do {
+    const page = await fetchCatalogJson('products?pageSize=100' + (token ? '&pageToken=' + encodeURIComponent(token) : ''));
+    products.push(...(page.documents || []).map(catalogProduct));
+    token = page.nextPageToken || '';
+  } while (token);
+  cacheCatalog(products);
+  return products;
+}
+export async function fetchProduct(id) {
+  if (!id) throw new Error('Missing product ID');
+  const product = catalogProduct(await fetchCatalogJson(`products/${encodeURIComponent(id)}`));
+  return product;
+}

@@ -75,7 +75,7 @@
         <a class="trendora-brand" href="index.html" aria-label="Trendora home"><i class="brand-mark" aria-hidden="true">t</i><span>trendora</span></a>
         <div class="nav-center"><a href="index.html#collection" class="${page === 'index.html' ? 'active' : ''}">Shop all</a><a href="wishlist.html">Saved</a><a href="index.html#edit">The everyday edit</a><a href="track-order.html">Track an order</a></div>
         <div class="trendora-navlinks">
-          <a class="nav-search" href="index.html#collection" aria-label="Search products"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m16 16 5 5"/></svg><span>Search</span></a>
+          <button class="nav-search" id="navSearchToggle" type="button" aria-label="Search products" aria-expanded="false" aria-controls="globalSearchPanel"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m16 16 5 5"/></svg><span>Search</span></button>
           ${navLink("orders.html", "Orders", "js-orders-link")}
           <a class="trendora-icon-btn${isActiveHref("cart.html") ? " active" : ""}" href="cart.html" aria-label="Cart" title="Cart"${isActiveHref("cart.html") ? ' aria-current="page"' : ""}>
             ${icons.cart}
@@ -132,7 +132,65 @@
     bindNav();
   }
 
+  function ensureSearchPanel() {
+    let panel = document.getElementById("globalSearchPanel");
+    if (panel) return panel;
+    panel = document.createElement("div");
+    panel.id = "globalSearchPanel";
+    panel.className = "trendora-search-panel";
+    panel.hidden = true;
+    const currentQuery = page === "search.html" ? new URLSearchParams(location.search).get("q") || "" : "";
+    panel.innerHTML = `
+      <form class="trendora-search-form" action="search.html" method="get" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m16 16 5 5"/></svg>
+        <input type="search" name="q" value="${escapeText(currentQuery)}" placeholder="Search products, categories and more" aria-label="Search the Trendora catalog" autocomplete="off">
+        <button class="trendora-search-submit" type="submit">Search</button>
+        <button class="trendora-search-close" type="button" aria-label="Close search">&times;</button>
+      </form>
+      <p>Try a product name or category. Press Enter to view all matching products.</p>`;
+    document.querySelector(".trendora-navbar")?.after(panel);
+    const positionBelowNavbar = () => {
+      const navbar = document.querySelector(".trendora-navbar");
+      if (!navbar) return;
+      const navbarBottom = Math.max(0, Math.round(navbar.getBoundingClientRect().bottom));
+      panel.style.top = `${navbarBottom}px`;
+      document.documentElement.style.setProperty("--trendora-search-top", `${navbarBottom}px`);
+    };
+    panel.positionBelowNavbar = positionBelowNavbar;
+    window.addEventListener("resize", positionBelowNavbar, { passive: true });
+    window.addEventListener("scroll", () => {
+      if (!panel.hidden) positionBelowNavbar();
+    }, { passive: true });
+    const close = () => {
+      panel.hidden = true;
+      document.body.classList.remove("search-panel-open");
+      document.getElementById("navSearchToggle")?.setAttribute("aria-expanded", "false");
+    };
+    panel.querySelector(".trendora-search-close").addEventListener("click", close);
+    panel.querySelector("form").addEventListener("submit", event => {
+      event.preventDefault();
+      const query = panel.querySelector("input").value.trim();
+      window.location.href = `search.html${query ? `?q=${encodeURIComponent(query)}` : ""}`;
+    });
+    panel.addEventListener("click", event => event.stopPropagation());
+    return panel;
+  }
+
   function bindNav() {
+    const searchToggle = document.getElementById("navSearchToggle");
+    if (searchToggle) {
+      searchToggle.addEventListener("click", event => {
+        event.stopPropagation();
+        const panel = ensureSearchPanel();
+        const opening = panel.hidden;
+        if (opening) panel.positionBelowNavbar?.();
+        panel.hidden = !opening;
+        searchToggle.setAttribute("aria-expanded", String(opening));
+        document.body.classList.toggle("search-panel-open", opening);
+        if (opening) setTimeout(() => panel.querySelector("input")?.focus(), 0);
+      });
+    }
+
     const profileBtn = document.getElementById("profileMenuBtn");
     const dropdown = document.getElementById("profileDropdown");
     if (profileBtn && dropdown) {
@@ -365,12 +423,25 @@
       document.getElementById("profileDropdown")?.classList.remove("open");
       document.getElementById("profileMenuBtn")?.setAttribute("aria-expanded", "false");
     }
+    if (!event.target.closest("#globalSearchPanel") && !event.target.closest("#navSearchToggle")) {
+      const panel = document.getElementById("globalSearchPanel");
+      if (panel) panel.hidden = true;
+      document.body.classList.remove("search-panel-open");
+      document.getElementById("navSearchToggle")?.setAttribute("aria-expanded", "false");
+    }
   });
   document.addEventListener("keydown", event => {
     if(event.key === "Escape") {
       if(document.getElementById("trendoraAuthModal")?.classList.contains("open")) closeAuthModal();
       document.getElementById("profileDropdown")?.classList.remove("open");
       document.getElementById("profileMenuBtn")?.setAttribute("aria-expanded", "false");
+      const searchPanel = document.getElementById("globalSearchPanel");
+      if (searchPanel && !searchPanel.hidden) {
+        searchPanel.hidden = true;
+        document.body.classList.remove("search-panel-open");
+        document.getElementById("navSearchToggle")?.setAttribute("aria-expanded", "false");
+        document.getElementById("navSearchToggle")?.focus();
+      }
     }
   });
   function refreshCartBadge() { document.querySelectorAll(".trendora-cart-badge").forEach(el => el.textContent = cartCount()); }
