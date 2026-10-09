@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendora - Cart</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, "Segoe UI", sans-serif; background: #faf9f6; color: #303829; }
+  button, a { font: inherit; }
+  .cart-shell { width: min(1120px, calc(100% - 40px)); margin: 28px auto 0; }
+  .cart-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+  .cart-header h1 { font-size: 32px; color: #2d3526; }
+  .cart-header p { color: #7b826f; margin-top: 6px; font-weight: 600; }
+  .continue-link { color: #455336; text-decoration: none; font-weight: 900; white-space: nowrap; }
+  .cart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+  .cart-panel, .summary-panel {
+    background: #fff;
+    border: 1px solid #e0e3d7;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(22, 32, 51, 0.08);
+  }
+  .cart-panel { overflow: hidden; }
+  .cart-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf0e5;
+    background: #fbfcff;
+  }
+  .cart-toolbar strong { font-size: 15px; }
+  .clear-btn, .checkout-btn, .shop-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 14px;
+    cursor: pointer;
+    font-weight: 900;
+    text-decoration: none;
+    transition: 0.18s ease;
+  }
+  .clear-btn { background: #fff1f1; color: #b42318; border: 1px solid #ffd6d2; }
+  .clear-btn:hover { background: #ffe4e0; }
+  .checkout-btn, .shop-btn { background: #455336; color: #fff; width: 100%; }
+  .checkout-btn:hover, .shop-btn:hover { background: #303c24; transform: translateY(-1px); }
+  .cart-list { display: grid; }
+  .cart-item {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr) auto;
+    gap: 16px;
+    padding: 18px;
+    border-bottom: 1px solid #edf0e5;
+    align-items: center;
+  }
+  .cart-item:last-child { border-bottom: 0; }
+  .item-media {
+    width: 96px;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #eef0e6;
+    border: 1px solid #e5eaf2;
+  }
+  .item-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .item-info { min-width: 0; display: grid; gap: 8px; }
+  .item-info h2 { font-size: 17px; line-height: 1.25; color: #303829; overflow-wrap: anywhere; }
+  .item-meta { color: #7b826f; font-size: 14px; font-weight: 700; }
+  .item-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .qty-control {
+    display: inline-grid;
+    grid-template-columns: 38px 46px 38px;
+    align-items: center;
+    border: 1px solid #e0e3d7;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .qty-control button {
+    height: 38px;
+    border: 0;
+    background: #f8f9f3;
+    color: #303829;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .qty-control button:hover { background: #eff2e7; color: #455336; }
+  .qty-control span { text-align: center; font-weight: 900; }
+  .remove-btn { border: 0; background: transparent; color: #b42318; cursor: pointer; font-weight: 900; padding: 8px 0; }
+  .save-later-btn { border: 0; background: transparent; color: #526a3d; cursor: pointer; font-weight: 900; padding: 8px 0; }
+  .save-later-btn:hover { text-decoration: underline; }
+  .item-total { text-align: right; display: grid; gap: 5px; min-width: 120px; }
+  .item-total small { color: #7b826f; font-weight: 700; }
+  .item-total strong { font-size: 18px; color: #2d3526; }
+  .summary-panel { padding: 18px; position: sticky; top: 92px; display: grid; gap: 16px; }
+  .summary-panel h2 { font-size: 20px; color: #2d3526; }
+  .summary-lines { display: grid; gap: 12px; }
+  .summary-lines div { display: flex; justify-content: space-between; gap: 12px; color: #6e785f; font-weight: 700; }
+  .summary-lines .grand-total { border-top: 1px solid #e5e7eb; padding-top: 14px; color: #2d3526; font-size: 19px; font-weight: 900; }
+  .summary-note { background: #f8f9f3; border: 1px solid #edf0e5; border-radius: 8px; padding: 12px; color: #7b826f; font-size: 14px; line-height: 1.5; }
+  .empty-cart {
+    background: #fff;
+    border: 1px solid #e0e3d7;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(22,32,51,0.08);
+    min-height: 360px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 32px;
+  }
+  .empty-cart div { max-width: 430px; display: grid; gap: 14px; }
+  .empty-icon {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: grid;
+    place-items: center;
+    background: #eff2e7;
+    color: #455336;
+    font-size: 32px;
+    font-weight: 900;
+  }
+  .empty-cart h2 { font-size: 24px; color: #2d3526; }
+  .empty-cart p { color: #7b826f; line-height: 1.6; }
+  .toast {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 3500;
+    max-width: min(360px, calc(100% - 36px));
+    background: #2d3526;
+    color: #fff;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 18px 45px rgba(16,24,40,.28);
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition: .2s ease;
+    font-weight: 800;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  @media (max-width: 860px) {
+    .cart-shell { width: min(100% - 24px, 1120px); margin-top: 18px; }
+    .cart-header { align-items: flex-start; flex-direction: column; }
+    .cart-layout { grid-template-columns: 1fr; }
+    .summary-panel { position: static; }
+  }
+  @media (max-width: 620px) {
+    .cart-header h1 { font-size: 27px; }
+    .cart-toolbar { align-items: flex-start; flex-direction: column; }
+    .clear-btn { width: 100%; }
+    .cart-item { grid-template-columns: 78px minmax(0, 1fr); align-items: start; gap: 12px; }
+    .item-media { width: 78px; }
+    .item-total { grid-column: 1 / -1; text-align: left; min-width: 0; }
+    .qty-control { grid-template-columns: 36px 44px 36px; }
+  }
+</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+<main class="cart-shell">
+  <header class="cart-header">
+    <div>
+      <h1>Shopping Cart</h1>
+      <p id="cartSubtitle">Review your items before checkout.</p>
+    </div>
+    <a class="continue-link" href="index.html">Continue Shopping</a>
+  </header>
+
+  <section id="cartContent"></section>
+</main>
+<div id="cartToast" class="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
+(() => {
+  const cartContent = document.getElementById("cartContent");
+  const cartSubtitle = document.getElementById("cartSubtitle");
+  const toast = document.getElementById("cartToast");
+
+  function getCart() { return normalizeCart(localStorage.getItem("cart") || "[]"); }
+
+  function saveCart(cart) {
+    localStorage.setItem("cart", JSON.stringify(cart));
+    window.TrendoraAuth?.refreshLayout?.();
+  }
+
+  function formatCurrency(value) {
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value || 0));
+  }
+
+  function getCartImage(item) {
+    if (Array.isArray(item.imageUrls) && item.imageUrls.length) return item.imageUrls[0];
+    return item.imageUrl || "";
+  }
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => toast.classList.remove("show"), 1800);
+  }
+
+  function totals(cart) {
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const items = cart.reduce((sum, item) => sum + item.quantity, 0);
+    return { subtotal, items };
+  }
+
+  function renderEmpty() {
+    cartSubtitle.textContent = "Your cart is waiting for something good.";
+    cartContent.innerHTML = `
+      <section class="empty-cart">
+        <div>
+          <span class="empty-icon">0</span>
+          <h2>Your cart is empty</h2>
+          <p>Add products you love and they will show up here with quantity controls and checkout summary.</p>
+          <a class="shop-btn" href="index.html">Start Shopping</a>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderCart() {
+    const cart = getCart();
+    if (!cart.length) {
+      renderEmpty();
+      return;
+    }
+
+    const { subtotal, items } = totals(cart);
+    cartSubtitle.textContent = `${items} item${items === 1 ? "" : "s"} ready for checkout.`;
+    cartContent.innerHTML = `
+      <div class="cart-layout">
+        <section class="cart-panel" aria-label="Cart items">
+          <div class="cart-toolbar">
+            <strong>${items} item${items === 1 ? "" : "s"} in cart</strong>
+            <button class="clear-btn" type="button" id="clearCartBtn">Clear Cart</button>
+          </div>
+          <div class="cart-list">
+            ${cart.map(item => `
+              <article class="cart-item" data-id="${escapeHTML(item.id)}">
+                <div class="item-media">
+                  <img src="${escapeHTML(getCartImage(item))}" alt="${escapeHTML(item.name)}">
+                </div>
+                <div class="item-info">
+                  <h2>${escapeHTML(item.name)}</h2>
+                  <p class="item-meta">${formatCurrency(item.price)} each</p>
+                  <div class="item-actions">
+                    <div class="qty-control" aria-label="Quantity controls">
+                      <button type="button" data-action="decrease" aria-label="Decrease quantity">-</button>
+                      <span>${item.quantity}</span>
+                      <button type="button" data-action="increase" aria-label="Increase quantity">+</button>
+                    </div>
+                    <button class="save-later-btn" type="button" data-action="save">Save for later</button>
+                    <button class="remove-btn" type="button" data-action="remove">Remove</button>
+                  </div>
+                </div>
+                <div class="item-total">
+                  <small>Item total</small>
+                  <strong>${formatCurrency(item.price * item.quantity)}</strong>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+
+        <aside class="summary-panel" aria-label="Order summary">
+          <h2>Order Summary</h2>
+          <div class="summary-lines">
+            <div><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
+            <div><span>Delivery</span><strong>Calculated next</strong></div>
+            <div class="grand-total"><span>Total</span><strong>${formatCurrency(subtotal)}</strong></div>
+          </div>
+          <p class="summary-note">Discounts, saved addresses, and payment method are handled on the checkout page.</p>
+          <button class="checkout-btn" type="button" id="checkoutBtn">Proceed to Checkout</button>
+        </aside>
+      </div>
+    `;
+
+    document.getElementById("clearCartBtn").addEventListener("click", async () => {
+      if (!await window.trendoraDialog.confirm("Clear all items from cart?")) return;
+      localStorage.removeItem("cart");
+      renderCart();
+      showToast("Cart cleared.");
+    });
+
+    document.getElementById("checkoutBtn").addEventListener("click", async () => {
+      const latestCart = getCart();
+      if (!latestCart.length) {
+        renderCart();
+        return;
+      }
+      const isLoggedIn = await window.TrendoraAuth?.requireAuth?.({ mode: "login", returnUrl: "checkout.html" });
+      if (isLoggedIn) window.location.href = "checkout.html";
+    });
+
+    cartContent.querySelectorAll("[data-action]").forEach(button => {
+      button.addEventListener("click", () => {
+        const itemEl = button.closest(".cart-item");
+        const id = itemEl?.dataset.id;
+        const action = button.dataset.action;
+        const nextCart = getCart();
+        const item = nextCart.find(cartItem => cartItem.id === id);
+        if (!item) return;
+
+        if (action === "increase") {
+          item.quantity += 1;
+          showToast("Quantity updated.");
+        }
+        if (action === "decrease") {
+          item.quantity -= 1;
+          if (item.quantity <= 0) {
+            const index = nextCart.findIndex(cartItem => cartItem.id === id);
+            nextCart.splice(index, 1);
+            showToast("Item removed.");
+          } else {
+            showToast("Quantity updated.");
+          }
+        }
+        if (action === "remove") {
+          const index = nextCart.findIndex(cartItem => cartItem.id === id);
+          nextCart.splice(index, 1);
+          showToast("Item removed.");
+        }
+        if (action === "save") {
+          let saved = [];
+          try { const value = JSON.parse(localStorage.getItem("trendora-wishlist") || "[]"); saved = Array.isArray(value) ? value.map(String) : []; } catch (_) {}
+          localStorage.setItem("trendora-wishlist", JSON.stringify([...new Set([id, ...saved])]));
+          const index = nextCart.findIndex(cartItem => cartItem.id === id);
+          nextCart.splice(index, 1);
+          showToast("Moved to saved products.");
+        }
+
+        saveCart(nextCart);
+        renderCart();
+      });
+    });
+  }
+
+  renderCart();
+})();
+</script>
+<script src="js/main.js" defer></script>
+</body>
+</html>

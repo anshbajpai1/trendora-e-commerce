@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendora - Login</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #faf9f6;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333;
+    position: relative;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 400px;
+    background-color: #fff;
+    padding: 40px 30px;
+    border-radius: 8px;
+    border: 1px solid #e0e3d7;
+    box-shadow: 0 12px 30px rgba(22,32,51,0.08);
+    text-align: center;
+    position: relative;
+  }
+
+  h2 {
+    margin-bottom: 30px;
+    color: #303829;
+    font-size: 28px;
+    font-weight: 600;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 15px;
+    margin: 12px 0;
+    border: 1px solid #e0e3d7;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+  input:focus {
+    border-color: #65784b;
+    box-shadow: 0 0 0 3px rgba(37,117,252,0.12);
+    outline: none;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background: #65784b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  button:hover {
+    background: #303c24;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(23,63,159,0.18);
+  }
+
+  p { margin-top: 20px; font-size: 14px; color: #555; }
+  p a {
+    color: #65784b;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  p a:hover { color: #37452a; }
+
+  .forgot-password {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #65784b;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  .forgot-password:hover { color: #37452a; }
+
+  /* Loader */
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #65784b;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    display: none;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  .shop-link { display: inline-block; margin-top: 14px; color: #455336; text-decoration: none; font-weight: 700; }
+</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+
+<div class="login-box">
+  <h2>Login</h2>
+  <input type="text" id="emailPhone" placeholder="Email or Phone">
+  <input type="password" id="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <div class="loader" id="loader"></div>
+  <a href="forgot-password.html" class="forgot-password">Forgot Password?</a>
+  <p>Don't have an account? <a href="signup.html">Sign up here</a></p>
+  <a href="index.html" class="shop-link">Continue shopping</a>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+  authDomain: "trendora-1cd23.firebaseapp.com",
+  projectId: "trendora-1cd23",
+  storageBucket: "trendora-1cd23.firebasestorage.app",
+  messagingSenderId: "1080352553475",
+  appId: "1:1080352553475:web:850319561617a21fdfec36",
+  measurementId: "G-LXQXX0YW38"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+await setPersistence(auth, browserLocalPersistence);
+
+const loginBtn = document.getElementById("loginBtn");
+const loader = document.getElementById("loader");
+const params = new URLSearchParams(window.location.search);
+const returnUrl = params.get("returnUrl") || "index.html";
+
+async function login() {
+  const input = document.getElementById("emailPhone").value.trim();
+  const password = document.getElementById("password").value;
+  if (!input || !password) { alert("Please fill all fields!"); return; }
+
+  loader.style.display = "block";
+  loginBtn.disabled = true;
+
+  try {
+    const usersRef = collection(db, "users");
+    let q;
+
+    if (!input.includes("@")) {
+      q = query(usersRef, where("phone", "==", input));
+    } else {
+      q = query(usersRef, where("email", "==", input));
+    }
+
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) throw new Error("No account found!");
+
+    const userData = querySnapshot.docs[0].data();
+    await signInWithEmailAndPassword(auth, userData.email, password);
+    window.location.href = returnUrl;
+
+  } catch (error) {
+    console.error(error);
+    alert("Login failed: " + (error.message || "Unknown error"));
+  } finally {
+    loader.style.display = "none";
+    loginBtn.disabled = false;
+  }
+}
+
+loginBtn.addEventListener("click", login);
+document.addEventListener("keydown", e => { if(e.key==="Enter") login(); });
+</script>
+
+<script src="js/main.js" defer></script>
+</body>
+</html>

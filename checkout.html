@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendora - Checkout</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, "Segoe UI", sans-serif; background: #faf9f6; color: #303829; padding: 0; }
+  .checkout-shell { width: min(1040px, calc(100% - 44px)); margin: 22px auto 0; }
+  .topline { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 18px; }
+  h1 { font-size: 30px; letter-spacing: 0; }
+  h2 { color: #455336; margin-bottom: 15px; font-size: 19px; }
+  .home-link { color: #455336; text-decoration: none; font-weight: 800; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: start; }
+  .section { background: #fff; padding: 22px; margin-bottom: 18px; border-radius: 8px; border: 1px solid #e0e3d7; box-shadow: 0 12px 30px rgba(22,32,51,0.08); }
+  .cart-item { border-bottom: 1px solid #edf0e5; padding: 12px 0; display: flex; justify-content: space-between; gap: 14px; font-size: 15px; }
+  .cart-item:last-child { border-bottom: none; }
+  .summary-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .summary-item img { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; background: #eef0e6; flex: 0 0 auto; }
+  .summary-item span { overflow-wrap: anywhere; }
+  label { font-weight: 700; margin-top: 12px; display: block; color: #515c43; font-size: 13px; }
+  input, textarea, select { display: block; width: 100%; margin: 9px 0 12px; padding: 12px; border: 1px solid #e0e3d7; border-radius: 8px; font-size: 15px; outline: none; }
+  input:focus, textarea:focus, select:focus { border-color: #455336; box-shadow: 0 0 0 3px rgba(36,87,214,0.12); }
+  textarea { min-height: 94px; resize: vertical; }
+  .saved-addresses { display: grid; gap: 10px; margin: 10px 0 12px; }
+  .address-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e0e3d7;
+    border-radius: 8px;
+    background: #f8f9f3;
+    color: #303829;
+    text-align: left;
+    cursor: pointer;
+  }
+  .address-card:hover { border-color: #455336; background: #eff2e7; transform: none; }
+  .address-card.active { border-color: #455336; box-shadow: 0 0 0 3px rgba(36,87,214,0.12); background: #eff2e7; }
+  .address-card input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: #455336; }
+  .address-card strong { display: block; margin-bottom: 3px; font-size: 13px; color: #455336; }
+  .address-card span { display: block; color: #6e785f; line-height: 1.4; overflow-wrap: anywhere; }
+  .address-empty { margin: 8px 0 12px; padding: 12px; border: 1px dashed #e0e3d7; border-radius: 8px; color: #7b826f; background: #fff; font-size: 14px; }
+  button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 13px 16px; cursor: pointer; background: #455336; border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 800; transition: 0.18s ease; }
+  button:hover { background: #303c24; transform: translateY(-1px); }
+  button:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+  #placeOrderBtn { width: 100%; min-height: 50px; }
+  .loader { border: 3px solid rgba(255,255,255,0.45); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .discount-box { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
+  .discount-box input { margin: 0; text-transform: uppercase; }
+  .discount-box button { min-width: 120px; }
+  .discount-help { margin-top: 10px; color: #7b826f; font-size: 14px; }
+  .discount-success { color: #138a55; font-weight: 800; margin-top: 10px; font-size: 14px; }
+  .discount-error { color: #c24135; font-weight: 800; margin-top: 10px; font-size: 14px; }
+  .applied-coupon { display: none; margin-top: 14px; padding: 12px; border-radius: 8px; background: #eef8f2; border: 1px solid #bfe8cf; color: #135c3b; font-size: 14px; }
+  .applied-coupon button { margin-top: 10px; padding: 9px 12px; background: #135c3b; }
+  .offer-list { display: grid; gap: 8px; margin: 0 0 14px; }
+  .offer-chip { width: 100%; padding: 10px 11px; justify-content: space-between; background: #f4f7ed; color: #3d4d2d; border: 1px solid #dce5ce; text-align: left; font-size: 12px; }
+  .offer-chip:hover { background: #e9efdc; }
+  .offer-chip strong { font-size: 12px; letter-spacing: .04em; }
+  .offer-chip span { color: #6e785f; font-weight: 600; }
+  .offer-loading { display: block; color: #7b826f; font-size: 12px; padding: 8px 0; }
+  .total-breakdown { display: grid; gap: 10px; }
+  .total-breakdown div { display: flex; justify-content: space-between; gap: 14px; color: #6e785f; }
+  .total-breakdown .payable { font-size: 19px; color: #111827; font-weight: 800; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+  .empty { color: #7b826f; }
+  @media (max-width: 860px) {
+    .checkout-shell { width: min(100% - 24px, 1040px); margin-top: 14px; }
+    .layout { grid-template-columns: 1fr; }
+    .discount-box { grid-template-columns: 1fr; }
+    .discount-box button { width: 100%; }
+    .topline { align-items: flex-start; flex-direction: column; }
+    h1 { font-size: 25px; }
+    .section { padding: 17px; }
+    .cart-item { align-items: flex-start; flex-direction: column; }
+    .cart-item strong { align-self: flex-end; }
+  }
+</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+<main class="checkout-shell">
+  <div class="topline">
+    <h1>Checkout</h1>
+    <a class="home-link" href="index.html">Continue Shopping</a>
+  </div>
+
+  <div class="layout">
+    <div>
+      <section class="section">
+        <h2>Customer Details</h2>
+        <label for="custName">Full Name</label>
+        <input type="text" id="custName" placeholder="Full Name" required>
+        <label for="custPhone">Phone Number</label>
+        <input type="text" id="custPhone" placeholder="Phone Number" required pattern="[0-9]{10}">
+        <label for="custAddress">Delivery Address</label>
+        <div id="savedAddresses" class="saved-addresses"></div>
+        <textarea id="custAddress" placeholder="Delivery Address" required></textarea>
+      </section>
+
+      <section class="section">
+        <h2>Payment Method</h2>
+        <select id="paymentMethod" required>
+          <option value="">Select Payment Method</option>
+          <option value="COD">Cash on Delivery</option>
+          <option value="Online">Online Payment</option>
+        </select>
+      </section>
+    </div>
+
+    <aside>
+      <section class="section">
+        <h2>Order Summary</h2>
+        <div id="cartItems"></div>
+        <div id="total" style="margin-top:15px;"></div>
+      </section>
+
+      <section class="section">
+        <h2>Offers & coupon</h2>
+        <p class="discount-help" style="margin:0 0 12px">Apply an eligible offer before choosing your payment method.</p>
+        <div id="offerList" class="offer-list" aria-live="polite"><span class="offer-loading">Checking available offers…</span></div>
+        <div class="discount-box">
+          <input type="text" id="discountCode" placeholder="Enter coupon code">
+          <button id="applyDiscountBtn" type="button">Apply</button>
+        </div>
+        <p id="discountMessage" class="discount-help">Use a code assigned to your account.</p>
+        <div id="appliedCoupon" class="applied-coupon"></div>
+      </section>
+
+      <button id="placeOrderBtn">
+        <span class="loader" id="loader"></span>
+        Place Order
+      </button>
+    </aside>
+  </div>
+</main>
+
+<script src="js/email-config.js"></script>
+<script type="module">
+import { normalizeCart, escapeHTML, discountFor } from "./js/commerce.mjs";
+import { createOrderWithInventory } from "./js/checkout-order.js";
+import { updateOrderAtomic } from "./js/order-transactions.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, setPersistence, browserLocalPersistence, onIdTokenChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+  authDomain: "trendora-1cd23.firebaseapp.com",
+  projectId: "trendora-1cd23",
+  storageBucket: "trendora-1cd23.appspot.com",
+  messagingSenderId: "1080352553475",
+  appId: "1:1080352553475:web:850319561617a21fdfec36"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let currentUser = null;
+let cart = normalizeCart(localStorage.getItem("cart") || "[]");
+let checkoutInProgress = false;
+let appliedDiscount = null;
+let subtotal = 0;
+let discountAmount = 0;
+let finalTotal = 0;
+let savedAddresses = [];
+
+function offerText(code) { return code.type === "flat" ? `${formatCurrency(code.amount)} off` : `${Number(code.amount || 0)}% off`; }
+async function loadEligibleOffers() {
+  const host = document.getElementById("offerList");
+  if (!currentUser) { host.innerHTML = '<span class="offer-loading">Log in to see your offers.</span>'; return; }
+  try {
+    const snapshot = await getDocs(collection(db, "discountCodes"));
+    const today = new Date();
+    const offers = snapshot.docs.map(item => ({ id:item.id, ...item.data() })).filter(code => {
+      const expired = code.expiresAt && new Date(code.expiresAt + "T23:59:59") < today;
+      const exhausted = Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses);
+      return code.status !== "disabled" && !expired && !exhausted && (!code.userUID || code.userUID === currentUser.uid);
+    }).slice(0, 4);
+    host.innerHTML = offers.length ? offers.map(code => `<button type="button" class="offer-chip" data-code="${escapeHTML(code.code || code.id)}"><strong>${escapeHTML(code.code || code.id)}</strong><span>${offerText(code)}${Number(code.minOrder || 0) ? ` · on orders over ${formatCurrency(code.minOrder)}` : ""}</span></button>`).join("") : '<span class="offer-loading">No eligible offers right now. You can still enter a code below.</span>';
+    host.querySelectorAll("[data-code]").forEach(button => button.onclick = () => { document.getElementById("discountCode").value = button.dataset.code; applyDiscountCode(); });
+  } catch { host.innerHTML = '<span class="offer-loading">Enter a coupon code below to apply it.</span>'; }
+}
+
+await setPersistence(auth, browserLocalPersistence);
+
+onIdTokenChanged(auth, async (user) => {
+  currentUser = user;
+  if (!user) {
+    const showCheckoutLogin = () => window.TrendoraAuth?.openAuthModal({ mode: "login", returnUrl: "checkout.html" });
+    if (window.TrendoraAuth) showCheckoutLogin();
+    else setTimeout(showCheckoutLogin, 500);
+    return;
+  }
+  currentUser = user;
+  try {
+    const profileSnap = await getDoc(doc(db, "users", user.uid));
+    const nestedProfileSnap = await getDoc(doc(db, "users", user.uid, "profile", "info"));
+    if (profileSnap.exists() || nestedProfileSnap.exists()) {
+      const data = {
+        ...(nestedProfileSnap.exists() ? nestedProfileSnap.data() : {}),
+        ...(profileSnap.exists() ? profileSnap.data() : {})
+      };
+      document.getElementById("custName").value = data.name || user.displayName || "";
+      document.getElementById("custPhone").value = data.phone || "";
+      savedAddresses = normalizeAddresses(data.addresses, data.address);
+      renderSavedAddresses();
+    } else {
+      savedAddresses = [];
+      renderSavedAddresses();
+    }
+    loadEligibleOffers();
+  } catch (err) {
+    console.error(err);
+    renderSavedAddresses();
+  }
+  loadCart();
+});
+
+setInterval(async () => { if (currentUser) await currentUser.getIdToken(true); }, 15 * 60 * 1000);
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value || 0));
+}
+
+function getCartImage(item) {
+  if (Array.isArray(item.imageUrls) && item.imageUrls.length) return item.imageUrls[0];
+  return item.imageUrl || "";
+}
+
+function normalizeAddresses(addresses, fallbackAddress = "") {
+  const list = Array.isArray(addresses) ? addresses : [];
+  const normalized = list
+    .map(address => typeof address === "string" ? address : address?.address || address?.line || "")
+    .map(address => address.trim())
+    .filter(Boolean);
+  if (!normalized.length && fallbackAddress) normalized.push(String(fallbackAddress).trim());
+  return [...new Set(normalized)];
+}
+
+function selectSavedAddress(address, index) {
+  document.getElementById("custAddress").value = address;
+  document.querySelectorAll(".address-card").forEach((card, cardIndex) => {
+    const active = cardIndex === index;
+    card.classList.toggle("active", active);
+    const input = card.querySelector("input");
+    if (input) input.checked = active;
+  });
+}
+
+function renderSavedAddresses() {
+  const container = document.getElementById("savedAddresses");
+  if (!container) return;
+  if (!savedAddresses.length) {
+    container.innerHTML = '<div class="address-empty">No saved addresses yet. Add a delivery address below.</div>';
+    return;
+  }
+  container.innerHTML = savedAddresses.map((address, index) => `
+    <button type="button" class="address-card ${index === 0 ? "active" : ""}" data-index="${index}">
+      <input type="radio" name="savedAddress" ${index === 0 ? "checked" : ""} tabindex="-1">
+      <span><strong>Saved Address ${index + 1}</strong><span>${address}</span></span>
+    </button>
+  `).join("");
+  container.querySelectorAll(".address-card").forEach(card => {
+    card.addEventListener("click", () => selectSavedAddress(savedAddresses[Number(card.dataset.index)], Number(card.dataset.index)));
+  });
+  selectSavedAddress(savedAddresses[0], 0);
+}
+
+function calculateDiscount(code, amount) {
+  const value = Number(code.amount || 0);
+  if (code.type === "flat") return Math.min(value, amount);
+  return Math.min((amount * value) / 100, amount);
+}
+
+function recalculateTotals() {
+  discountAmount = appliedDiscount ? calculateDiscount(appliedDiscount, subtotal) : 0;
+  finalTotal = Math.max(subtotal - discountAmount, 0);
+  document.getElementById("total").innerHTML = `
+    <div class="total-breakdown">
+      <div><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
+      <div><span>Discount</span><strong>${discountAmount ? "- " + formatCurrency(discountAmount) : formatCurrency(0)}</strong></div>
+      <div class="payable"><span>Payable</span><strong>${formatCurrency(finalTotal)}</strong></div>
+    </div>
+  `;
+}
+
+function loadCart() {
+  const container = document.getElementById("cartItems");
+  container.innerHTML = "";
+  if (cart.length === 0) {
+    container.innerHTML = "<p class='empty'>Your cart is empty. <a href='index.html'>Continue shopping</a></p>";
+    document.getElementById("total").innerHTML = "";
+    return;
+  }
+  subtotal = 0;
+  cart.forEach(item => {
+    const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
+    subtotal += itemTotal;
+    const div = document.createElement("div");
+    div.className = "cart-item";
+    div.innerHTML = `
+      <div class="summary-item">
+        <img src="${escapeHTML(getCartImage(item))}" alt="${escapeHTML(item.name)}">
+        <span>${escapeHTML(item.name)} (x${item.quantity})</span>
+      </div>
+      <strong>${formatCurrency(itemTotal)}</strong>
+    `;
+    container.appendChild(div);
+  });
+  recalculateTotals();
+}
+
+function showDiscountMessage(message, type = "help") {
+  const el = document.getElementById("discountMessage");
+  el.textContent = message;
+  el.className = type === "success" ? "discount-success" : type === "error" ? "discount-error" : "discount-help";
+}
+
+function renderAppliedCoupon() {
+  const box = document.getElementById("appliedCoupon");
+  if (!appliedDiscount) {
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+  const valueText = appliedDiscount.type === "flat" ? formatCurrency(appliedDiscount.amount) : `${appliedDiscount.amount}%`;
+  box.style.display = "block";
+  box.innerHTML = `
+    <strong>${appliedDiscount.code}</strong> applied. You saved ${formatCurrency(discountAmount)} with ${valueText} off.
+    <br><button type="button" id="removeDiscountBtn">Remove Code</button>
+  `;
+  document.getElementById("removeDiscountBtn").onclick = () => {
+    appliedDiscount = null;
+    document.getElementById("discountCode").value = "";
+    showDiscountMessage("Discount code removed.");
+    recalculateTotals();
+    renderAppliedCoupon();
+  };
+}
+
+async function applyDiscountCode() {
+  if (!currentUser) {
+    await window.TrendoraAuth?.requireAuth?.({ mode: "login", returnUrl: "checkout.html" });
+    return;
+  }
+  const rawCode = document.getElementById("discountCode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!rawCode) {
+    showDiscountMessage("Please enter a discount code.", "error");
+    return;
+  }
+  if (!cart.length) {
+    showDiscountMessage("Add items to cart before applying a code.", "error");
+    return;
+  }
+  const applyButton=document.getElementById("applyDiscountBtn");
+  if(applyButton.disabled)return;
+  applyButton.disabled=true;
+  try {
+  const snap = await getDoc(doc(db, "discountCodes", rawCode));
+  if (!snap.exists()) {
+    showDiscountMessage("This discount code does not exist.", "error");
+    return;
+  }
+  const code = { id: snap.id, ...snap.data() };
+  if (code.status === "disabled") {
+    showDiscountMessage("This discount code is disabled.", "error");
+    return;
+  }
+  if (code.userUID && code.userUID !== currentUser.uid) {
+    showDiscountMessage("This code is assigned to another account.", "error");
+    return;
+  }
+  if (code.expiresAt && new Date(code.expiresAt + "T23:59:59") < new Date()) {
+    showDiscountMessage("This discount code has expired.", "error");
+    return;
+  }
+  if (Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses)) {
+    showDiscountMessage("This discount code has already been used.", "error");
+    return;
+  }
+  if (subtotal < Number(code.minOrder || 0)) {
+    showDiscountMessage(`Minimum order for this code is ${formatCurrency(code.minOrder)}.`, "error");
+    return;
+  }
+  appliedDiscount = code;
+  recalculateTotals();
+  renderAppliedCoupon();
+  discountFor(code,subtotal,currentUser.uid);
+  showDiscountMessage(`Code ${code.code} applied successfully.`, "success");
+  } catch(error){showDiscountMessage(error.message || "Could not check this code. Try again.","error");}
+  finally {applyButton.disabled=false;}
+}
+
+async function createNumericOrderRef(adminUID) {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const orderId = String(Math.floor(100000 + Math.random() * 9900000));
+    const orderRef = doc(db, "admins", adminUID, "orders", orderId);
+    const existing = await getDoc(orderRef);
+    if (!existing.exists()) return { orderId, orderRef };
+  }
+  throw new Error("Could not generate a unique numeric order ID. Please try again.");
+}
+
+const EMAIL_API_URL = window.TrendoraEmail?.functionUrl || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
+
+function emailOrderPayload(order) {
+  return {
+    id: order.id,
+    customerName: order.customerName,
+    phone: order.phone,
+    address: order.address,
+    items: order.items || [],
+    subtotalAmount: order.subtotalAmount,
+    discountCode: order.discountCode,
+    discountAmount: order.discountAmount,
+    totalAmount: order.totalAmount,
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus,
+    orderStatus: order.orderStatus,
+    orderDateTime: order.orderDateTime
+  };
+}
+
+async function sendTrendoraEmail(type, to, payload) {
+  if (!to) return;
+  try {
+    const response = await fetch(EMAIL_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, to, payload })
+    });
+    const result = await response.json();
+    console.log("Email:", result.message);
+  } catch (err) {
+    console.error("Email sending failed:", err);
+  }
+}
+
+async function placeOrder() {
+  if(checkoutInProgress)return;
+  const loader = document.getElementById("loader");
+  const btn = document.getElementById("placeOrderBtn");
+  if (!currentUser) {
+    const isLoggedIn = await window.TrendoraAuth?.requireAuth?.({ mode: "login", returnUrl: "checkout.html" });
+    if (!isLoggedIn) return;
+  }
+
+  loader.style.display = "inline-block";
+  btn.disabled = true;
+
+  const name = document.getElementById("custName").value.trim();
+  const phone = document.getElementById("custPhone").value.trim();
+  const address = document.getElementById("custAddress").value.trim();
+  const paymentMethod = document.getElementById("paymentMethod").value;
+  subtotal = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+  recalculateTotals();
+
+  if (!cart.length) {
+    alert("Your cart is empty.");
+    loader.style.display = "none";
+    btn.disabled = false;
+    return;
+  }
+  if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD","Online"].includes(paymentMethod)) {
+    alert("Enter your name, a valid 10-digit mobile number, full delivery address and payment method.");
+    loader.style.display = "none";
+    btn.disabled = false;
+    return;
+  }
+
+  checkoutInProgress=true;
+  let awaitingPayment=false;
+  let committedOrder=null;
+  const resetCheckout=()=>{checkoutInProgress=false;loader.style.display="none";btn.disabled=false;document.getElementById("applyDiscountBtn").disabled=false;};
+  document.getElementById("applyDiscountBtn").disabled=true;
+
+  try {
+    if(paymentMethod === "Online" && typeof Razorpay !== "function") throw new Error("Online payment could not load. Check your connection or choose cash on delivery.");
+    // Refresh stale cart prices before committing; customer reviews any changed total.
+    const latestItems=await Promise.all(cart.map(async item=>{const snap=await getDoc(doc(db,"products",item.id));if(!snap.exists())throw new Error(`${item.name} is no longer available.`);return {...item,price:Number(snap.data().price),name:snap.data().name||item.name};}));
+    if(latestItems.some((item,i)=>item.price!==cart[i].price)){cart=latestItems;localStorage.setItem("cart",JSON.stringify(cart));loadCart();throw new Error("A product price changed. Your total has been updated. Please review and place your order again.");}
+    const adminUID = "REPLACE_WITH_ADMIN_UID";
+    const { orderId, orderRef } = await createNumericOrderRef(adminUID);
+    const placedAt = new Date();
+    const orderDate = placedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    const orderTime = placedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    let orderData = {
+      id: orderId,
+      adminUID,
+      customerName: name,
+      phone,
+      address,
+      items: cart,
+      subtotalAmount: subtotal,
+      discountCode: appliedDiscount?.code || "",
+      discountType: appliedDiscount?.type || "",
+      discountValue: appliedDiscount?.amount || 0,
+      discountAmount,
+      totalAmount: finalTotal,
+      paymentMethod,
+      paymentStatus: "Pending",
+      orderStatus: "Pending",
+      userUID: currentUser.uid,
+      userEmail: currentUser.email,
+      orderDate,
+      orderTime,
+      orderDateTime: `${orderDate}, ${orderTime}`,
+      orderPlacedAtMs: placedAt.getTime(),
+      restored: false,
+      timestamp: serverTimestamp()
+    };
+
+    orderData = await createOrderWithInventory(db,orderData,appliedDiscount?.id || "");
+    committedOrder = orderData;
+
+    if (paymentMethod === "COD") {
+      awaitingPayment = true;
+      await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
+      await window.trendoraDialog.alert("Order placed successfully.");
+      localStorage.removeItem("cart");
+      window.location.href = "orders.html";
+    } else if (paymentMethod === "Online") {
+      let paymentCompleted = false;
+      awaitingPayment=true;
+      const cancelPayment=async(status)=>{
+        if(paymentCompleted)return;
+        paymentCompleted=true;
+        try{await updateOrderAtomic(db,orderData,{paymentStatus:status,orderStatus:"Cancelled"},{restore:true,releaseCoupon:true});resetCheckout();}
+        catch(error){console.error(error);await window.trendoraDialog.alert("Could not update the payment status. Check your orders before retrying.");location.href="orders.html";}
+      };
+      const options = {
+        key: "rzp_test_RSpnvcoG8kLckh",
+        amount: Math.round(finalTotal * 100),
+        currency: "INR",
+        name: "Trendora Checkout",
+        description: "Secure Online Payment",
+        prefill: { name, email: currentUser.email, contact: phone },
+        theme: { color: "#455336" },
+        modal: {
+          ondismiss: async function() { await cancelPayment("Payment Cancelled"); }
+        },
+        handler: async function(response) {
+          if(paymentCompleted)return;
+          paymentCompleted = true;
+          try {
+            const paymentUpdates = { paymentStatus: "Successful", paymentId: response.razorpay_payment_id || "" };
+            await updateOrderAtomic(db,orderData,paymentUpdates);
+            await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload({ ...orderData, ...paymentUpdates }) });
+            localStorage.removeItem("cart");
+            window.location.href = "orders.html";
+          } catch(error) {
+            console.error(error);
+            await window.trendoraDialog.alert("Payment was received but the order update needs attention. Do not pay again. Check your orders and share payment reference " + (response.razorpay_payment_id || "with the store"));
+            window.location.href = "orders.html";
+          }
+        }
+      };
+      const rzp = new Razorpay(options);
+      rzp.on("payment.failed", async function() {
+        rzp.close();
+        await cancelPayment("Payment Failed");
+        alert("Payment failed. Your items remain in your bag. You can try again.");
+      });
+      rzp.open();
+    }
+  } catch (error) {
+    if (committedOrder && paymentMethod === "Online") {
+      try { await updateOrderAtomic(db,committedOrder,{orderStatus:"Cancelled",paymentStatus:"Payment Failed"},{restore:true,releaseCoupon:true}); }
+      catch(restoreError){console.error(restoreError);alert("Please check your orders before retrying checkout.");}
+    }
+    awaitingPayment=false;
+    alert(error.message || "Unable to place order. Please try again.");
+  } finally {
+    if(!awaitingPayment)resetCheckout();
+  }
+}
+
+document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
+document.getElementById("applyDiscountBtn").addEventListener("click", applyDiscountCode);
+document.getElementById("discountCode").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    applyDiscountCode();
+  }
+});
+</script>
+<script src="js/main.js" defer></script>
+</body>
+</html>

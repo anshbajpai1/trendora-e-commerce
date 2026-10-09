@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendora Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf9f6;
+    --panel: #ffffff;
+    --text: #303829;
+    --muted: #7b826f;
+    --line: #e0e3d7;
+    --primary: #455336;
+    --primary-dark: #303c24;
+    --success: #138a55;
+    --danger: #c24135;
+    --shadow: 0 12px 30px rgba(22, 32, 51, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  button, input, textarea { font: inherit; }
+  button { cursor: pointer; }
+  .icon { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 28px;
+    background: rgba(255,255,255,0.94);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+  }
+  .brand h1 { margin: 0; font-size: 23px; letter-spacing: 0; }
+  .brand p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+  .top-actions, .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    transition: 0.18s ease;
+  }
+  .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+  .btn.secondary { background: #eff2e7; color: var(--primary); border: 1px solid #d7dfc8; }
+  .btn.secondary:hover { background: #e4ead9; }
+  .btn.danger { background: var(--danger); }
+  .btn.danger:hover { background: #9f3029; }
+  .page { width: min(1180px, calc(100% - 32px)); margin: 26px auto 48px; }
+  .stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+  .stat span { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+  .stat strong { display: block; margin-top: 8px; font-size: 26px; }
+  .grid { display: grid; grid-template-columns: minmax(320px, 0.9fr) minmax(520px, 1.4fr); gap: 18px; align-items: start; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+  .panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+  .panel-head h2 { margin: 0; font-size: 18px; }
+  .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .panel-body { padding: 18px 20px 20px; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 13px; font-weight: 700; color: #515c43; }
+  input, textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; background: #fff; color: var(--text); outline: none; }
+  input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(36,87,214,0.12); }
+  textarea { min-height: 92px; resize: vertical; }
+  .preview-grid { display: none; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; margin-top: 10px; }
+  .preview-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #eef0e6; }
+  .product-list { display: grid; gap: 12px; }
+  .product-card { display: grid; grid-template-columns: 86px 1fr; gap: 13px; align-items: start; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fff; }
+  .product-card img { width: 86px; height: 86px; object-fit: cover; border-radius: 8px; background: #eef0e6; }
+  .product-thumb-stack { display: grid; grid-template-columns: repeat(2, 40px); gap: 6px; }
+  .product-thumb-stack img { width: 40px; height: 40px; }
+  .product-card h3 { margin: 0 0 6px; font-size: 16px; }
+  .product-card p { margin: 4px 0; color: var(--muted); font-size: 13px; }
+  .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 18px; text-align: center; }
+  .product-modal { position: fixed; inset: 0; z-index: 3000; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(16,24,40,.62); }
+  .product-modal.open { display: flex; }
+  .product-dialog { width: min(920px, 100%); max-height: min(88vh, 760px); overflow: auto; background: #fff; border-radius: 8px; box-shadow: 0 24px 70px rgba(16,24,40,.28); border: 1px solid var(--line); }
+  .product-dialog-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; background: #fff; border-bottom: 1px solid var(--line); }
+  .product-dialog-head h2 { margin: 0; font-size: 20px; }
+  .modal-close { width: 36px; height: 36px; border-radius: 50%; border: 0; background: #f2f4f7; color: var(--text); font-size: 24px; line-height: 1; }
+  .product-dialog-body { display: grid; grid-template-columns: minmax(260px, .9fr) minmax(320px, 1fr); gap: 18px; padding: 18px; }
+  .modal-gallery { display: grid; gap: 10px; align-content: start; }
+  .modal-gallery-main { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #eef0e6; }
+  .modal-gallery-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+  .modal-gallery-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #eef0e6; }
+  .modal-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-content: start; }
+  .modal-form .field.full { grid-column: 1 / -1; }
+  @media (max-width: 980px) { .grid, .stats { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) {
+    .topbar { align-items: flex-start; flex-direction: column; padding: 14px 16px; }
+    .page { width: min(100% - 20px, 1180px); margin-top: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .product-card { grid-template-columns: 1fr; }
+    .product-card img { width: 100%; height: 180px; }
+    .product-dialog-body, .modal-form { grid-template-columns: 1fr; }
+  }
+</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+
+<div class="topbar">
+  <div class="brand">
+    <h1>Trendora Admin</h1>
+    <p>Product catalog and store controls</p>
+  </div>
+  <div class="top-actions">
+    <button id="goToUsers" class="btn" type="button">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users & Discounts
+    </button>
+    <button id="goToOrders" class="btn secondary" type="button">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+      Orders
+    </button>
+    <button id="logoutBtn" class="btn danger" type="button">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
+      Logout
+    </button>
+  </div>
+</div>
+
+<main class="page">
+  <section class="stats">
+    <div class="stat"><span>Products</span><strong id="productCount">0</strong></div>
+    <div class="stat"><span>Low Stock</span><strong id="lowStockCount">0</strong></div>
+    <div class="stat"><span>Users</span><strong id="userCount">0</strong></div>
+    <div class="stat"><span>Active Codes</span><strong id="activeCodeCount">0</strong></div>
+    <div class="stat"><span>Total Redemptions</span><strong id="redemptionCount">0</strong></div>
+    <div class="stat"><span>Open Orders</span><strong id="openOrderCount">—</strong></div>
+    <div class="stat"><span>Order Value</span><strong id="orderValue">—</strong></div>
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2 id="formTitle">Add Product</h2>
+          <p>Create or update catalog items.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="pname">Product Name</label>
+            <input type="text" id="pname" placeholder="Classic linen shirt">
+          </div>
+          <div class="field">
+            <label for="pprice">Price</label>
+            <input type="number" id="pprice" placeholder="1499" min="0" step="0.01">
+          </div>
+          <div class="field">
+            <label for="pquantity">Quantity</label>
+            <input type="number" id="pquantity" placeholder="25" min="0">
+          </div>
+          <div class="field">
+            <label for="preturnDays">Return Days</label>
+            <input type="number" id="preturnDays" placeholder="7" min="0">
+          </div>
+          <div class="field"><label for="pcategory">Category</label><input id="pcategory" type="text" maxlength="60" placeholder="e.g. Clothing"></div><div class="field feature-field"><label for="pfeatured"><input id="pfeatured" type="checkbox"> Feature on the homepage</label><small>Uses this product’s actual photo.</small></div><div class="field full">
+            <label for="pdesc">Description</label>
+            <textarea id="pdesc" placeholder="Short product details"></textarea>
+          </div>
+          <div class="field full">
+            <label for="pimage">Product Images</label>
+            <input type="file" id="pimage" accept="image/*" multiple>
+            <div id="preview" class="preview-grid" aria-label="Selected product image previews"></div>
+          </div>
+          <p id="productFormMessage" class="form-message field full" role="status"></p><button class="btn secondary" id="cancelEditBtn" type="button" hidden>Cancel edit</button>
+          <button id="addBtn" class="btn" type="button">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            Add Product
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Products</h2>
+          <p>Inventory currently visible on the storefront.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="inventory-toolbar"><input id="inventorySearch" type="search" placeholder="Search your catalog…" aria-label="Search inventory"><select id="inventoryFilter" aria-label="Stock filter"><option value="all">All stock</option><option value="available">In stock</option><option value="low">Low stock (1–5)</option><option value="out">Out of stock</option></select></div><p id="inventoryCount" class="inventory-count" role="status">Loading inventory…</p><div id="productList" class="product-list" aria-busy="true"><div class="order-skeleton"><div class="loading-line tall"></div><div class="loading-line"></div></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="js/admin-products.js"></script>
+<script src="js/main.js" defer></script>
+</body>
+</html>

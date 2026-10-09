@@ -1,0 +1,8 @@
+supabase/.env.local
+trendora-backend/.env
+supabase/.temp/
+node_modules/
+trendora-backend/node_modules/
+
+.node-preview*.log
+.preview*.log

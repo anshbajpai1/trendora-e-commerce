@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendora - My Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, "Segoe UI", sans-serif; background: #faf9f6; color: #303829; overflow-x: hidden; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 16px 28px; background: #fff; border-bottom: 1px solid #e0e3d7; }
+  .topbar h1 { margin: 0; font-size: 24px; }
+  .topbar a { color: #455336; text-decoration: none; font-weight: 800; }
+  .page { width: min(1000px, calc(100% - 32px)); margin: 28px auto 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: 18px; align-items: start; min-width: 0; }
+  .panel { background: #fff; border: 1px solid #e0e3d7; border-radius: 8px; box-shadow: 0 12px 30px rgba(22,32,51,0.08); overflow: hidden; }
+  .panel-head { padding: 18px 20px; border-bottom: 1px solid #e0e3d7; }
+  .panel-head h2 { margin: 0; color: #455336; font-size: 19px; }
+  .panel-head p { margin: 5px 0 0; color: #7b826f; font-size: 14px; }
+  .panel-body { padding: 20px; }
+  label { display: block; margin: 14px 0 7px; font-weight: 700; color: #515c43; font-size: 13px; }
+  input { width: 100%; min-width: 0; padding: 12px; border-radius: 8px; border: 1px solid #e0e3d7; outline: none; font: inherit; }
+  input:focus { border-color: #455336; box-shadow: 0 0 0 3px rgba(36,87,214,0.12); }
+  input:disabled { background: #eef0e6; color: #7b826f; cursor: not-allowed; }
+  button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; border: 0; border-radius: 8px; background: #455336; color: #fff; padding: 12px 15px; font: inherit; font-weight: 800; cursor: pointer; transition: 0.18s ease; }
+  button:hover { background: #303c24; transform: translateY(-1px); }
+  button.loading { pointer-events: none; opacity: 0.78; }
+  button.loading::before { content: ""; width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  .icon { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+  #saveProfileBtn { width: 100%; margin-top: 18px; }
+  .addresses { margin-top: 18px; padding-top: 6px; }
+  .address-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: center; margin-bottom: 10px; min-width: 0; }
+  .address-item button { background: #c24135; padding: 10px 12px; }
+  #addAddressBtn { background: #135c3b; margin-top: 6px; }
+  #profileForm { opacity: 0; transition: opacity 0.35s ease-in-out; }
+  #loadingSpinner { text-align: center; padding: 50px 20px; color: #455336; font-weight: 700; }
+  .spinner-border { display: inline-block; width: 30px; height: 30px; border: 4px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .coupon-list { display: grid; gap: 12px; }
+  .coupon-card { border: 1px solid #e0e3d7; border-radius: 8px; padding: 14px; background: #f8f9f3; }
+  .coupon-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .code { font-size: 18px; letter-spacing: 0.05em; color: #455336; font-weight: 800; }
+  .pill { border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 800; background: #eff2e7; color: #455336; }
+  .pill.success { background: #e8f7ef; color: #138a55; }
+  .pill.warning { background: #fff5dc; color: #b7791f; }
+  .pill.danger { background: #feeceb; color: #c24135; }
+  .coupon-card p { margin: 8px 0 0; color: #7b826f; font-size: 14px; }
+  .empty { color: #7b826f; border: 1px dashed #e0e3d7; border-radius: 8px; padding: 18px; text-align: center; }
+  @media (max-width: 820px) { .page { grid-template-columns: 1fr; width: min(100% - 20px, 1000px); } .topbar { padding: 14px 16px; } }
+  @media (max-width: 520px) {
+    .panel-body { padding: 16px; }
+    .address-item { grid-template-columns: 1fr; }
+    .address-item button { width: 100%; }
+    .coupon-top { align-items: flex-start; flex-direction: column; }
+  }
+</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+<header class="topbar">
+  <h1>My Profile</h1>
+  <a href="index.html">Home</a>
+</header>
+
+<main class="page">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Account Details</h2>
+      <p>Keep your delivery details updated for faster checkout.</p>
+    </div>
+    <div class="panel-body">
+      <div id="loadingSpinner">
+        <div role="status" aria-label="Loading profile"><div class="loading-line short"></div><div class="loading-line tall"></div><div class="loading-line short"></div><div class="loading-line tall"></div></div>
+        <p>Loading profile...</p>
+      </div>
+
+      <div id="profileForm">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" placeholder="Enter your name">
+
+        <label for="email">Email</label>
+        <input type="email" id="email" disabled>
+
+        <label for="phone">Phone Number</label>
+        <input type="text" id="phone" placeholder="Enter your phone number">
+
+        <div class="addresses">
+          <label>Delivery Addresses</label>
+          <div id="addressList"></div>
+          <button type="button" id="addAddressBtn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            Add Address
+          </button>
+        </div>
+
+        <button id="saveProfileBtn">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+          Save Profile
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>My Discount Codes</h2>
+      <p>Admin assigned coupons available for your next checkout.</p>
+    </div>
+    <div class="panel-body">
+      <div id="discountList" class="coupon-list">
+        <div class="empty">Loading discount codes...</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, updateProfile, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+  authDomain: "trendora-1cd23.firebaseapp.com",
+  projectId: "trendora-1cd23",
+  storageBucket: "trendora-1cd23.firebasestorage.app",
+  messagingSenderId: "1080352553475",
+  appId: "1:1080352553475:web:850319561617a21fdfec36"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+await setPersistence(auth, browserLocalPersistence);
+
+let currentUser = null;
+const addressList = document.getElementById("addressList");
+const discountList = document.getElementById("discountList");
+const nameInput = document.getElementById("name");
+const emailInput = document.getElementById("email");
+const phoneInput = document.getElementById("phone");
+const profileForm = document.getElementById("profileForm");
+const loadingSpinner = document.getElementById("loadingSpinner");
+let privateDiscounts = [];
+let commonDiscounts = [];
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value || 0));
+}
+
+function createAddressInput(value = "") {
+  const div = document.createElement("div");
+  div.className = "address-item";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Enter full address";
+  input.value = value;
+  const delBtn = document.createElement("button");
+  delBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Delete';
+  delBtn.type = "button";
+  delBtn.onclick = () => div.remove();
+  div.appendChild(input);
+  div.appendChild(delBtn);
+  addressList.appendChild(div);
+}
+
+function showProfileContent() {
+  loadingSpinner.style.display = "none";
+  profileForm.style.opacity = "1";
+}
+
+function discountStatus(code) {
+  if (code.status === "disabled") return "Disabled";
+  if (code.expiresAt && new Date(code.expiresAt + "T23:59:59") < new Date()) return "Expired";
+  if (Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses)) return "Used";
+  return "Active";
+}
+
+function renderDiscounts() {
+  const allCodes = [
+    ...commonDiscounts.map(code => ({ ...code, scopeLabel: "Common" })),
+    ...privateDiscounts.map(code => ({ ...code, scopeLabel: "Private" }))
+  ];
+  if (!allCodes.length) {
+    discountList.innerHTML = '<div class="empty">No discount codes assigned yet.</div>';
+    return;
+  }
+  discountList.innerHTML = "";
+  allCodes.forEach(code => {
+    const status = discountStatus(code);
+    const statusClass = status === "Active" ? "success" : status === "Used" ? "warning" : "danger";
+    const valueText = code.type === "flat" ? formatCurrency(code.amount) : `${code.amount}%`;
+    const div = document.createElement("div");
+    div.className = "coupon-card";
+    div.innerHTML = `
+      <div class="coupon-top">
+        <span class="code">${code.code || code.id}</span>
+        <span class="pill">${code.scopeLabel}</span>
+        <span class="pill ${statusClass}">${status}</span>
+      </div>
+      <p>${valueText} off on orders above ${formatCurrency(code.minOrder || 0)}</p>
+      <p>Used ${Number(code.usedCount || 0)} of ${Number(code.maxUses || 1)}${code.expiresAt ? ` · Expires ${code.expiresAt}` : ""}</p>
+    `;
+    discountList.appendChild(div);
+  });
+}
+
+function listenDiscounts(uid) {
+  onSnapshot(collection(db, "users", uid, "discounts"), snapshot => {
+    privateDiscounts = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+    renderDiscounts();
+  }, error => {
+    console.error(error);
+    discountList.innerHTML = '<div class="empty">Unable to load discount codes.</div>';
+  });
+
+  const globalCodesQuery = query(collection(db, "discountCodes"), where("scope", "==", "global"));
+  onSnapshot(globalCodesQuery, snapshot => {
+    commonDiscounts = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+    renderDiscounts();
+  }, error => {
+    console.error(error);
+  });
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.href = "login.html?returnUrl=profile.html";
+    return;
+  }
+  currentUser = user;
+  emailInput.value = user.email || "";
+  listenDiscounts(user.uid);
+
+  try {
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    const profileSnap = await getDoc(doc(db, "users", user.uid, "profile", "info"));
+    const rootData = userSnap.exists() ? userSnap.data() : {};
+    const nestedData = profileSnap.exists() ? profileSnap.data() : {};
+    const data = { ...nestedData, ...rootData };
+    addressList.innerHTML = "";
+    nameInput.value = data.name || data.fullName || user.displayName || "";
+    emailInput.value = data.email || user.email || "";
+    phoneInput.value = data.phone || data.phoneNumber || "";
+    const addresses = Array.isArray(data.addresses) ? data.addresses : [];
+    if (addresses.length) addresses.forEach(addr => createAddressInput(typeof addr === "string" ? addr : addr.address || ""));
+    else createAddressInput(data.address || "");
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+    alert("Failed to load profile data.");
+  } finally {
+    showProfileContent();
+  }
+});
+
+document.getElementById("addAddressBtn").addEventListener("click", () => createAddressInput());
+
+document.getElementById("saveProfileBtn").addEventListener("click", async () => {
+  const saveBtn = document.getElementById("saveProfileBtn");
+  if (!currentUser) {
+    alert("User not logged in.");
+    return;
+  }
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+  if (!name) {
+    alert("Full name is required.");
+    return;
+  }
+  if (!/^[0-9]{10}$/.test(phone)) {
+    alert("Please enter a valid 10-digit phone number.");
+    return;
+  }
+  const addresses = Array.from(addressList.querySelectorAll("input")).map(input => input.value.trim()).filter(Boolean);
+  try {
+    saveBtn.classList.add("loading");
+    saveBtn.disabled = true;
+    await setDoc(doc(db, "users", currentUser.uid), {
+      name,
+      phone,
+      email: currentUser.email,
+      addresses
+    }, { merge: true });
+    await setDoc(doc(db, "users", currentUser.uid, "profile", "info"), {
+      name,
+      phone,
+      email: currentUser.email,
+      addresses
+    }, { merge: true });
+    if (currentUser.displayName !== name) await updateProfile(currentUser, { displayName: name });
+    alert("Profile saved successfully.");
+  } catch (err) {
+    console.error("Error saving profile:", err);
+    alert("Error saving profile. Please try again.");
+  } finally {
+    saveBtn.classList.remove("loading");
+    saveBtn.disabled = false;
+  }
+});
+</script>
+<script src="js/main.js" defer></script>
+</body>
+</html>

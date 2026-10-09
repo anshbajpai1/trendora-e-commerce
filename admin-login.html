@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendora Admin Login</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #faf9f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  .login-box {
+    background: #fff;
+    padding: 40px;
+    border-radius: 8px;
+    border: 1px solid #e0e3d7;
+    box-shadow: 0 12px 30px rgba(22,32,51,0.08);
+    width: 350px;
+    text-align: center;
+    position: relative;
+  }
+  h2 {
+    color: #455336;
+    margin-bottom: 20px;
+  }
+  input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #e0e3d7;
+    font-size: 14px;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #455336;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  button:hover {
+    background: #303c24;
+  }
+  p.error {
+    color: red;
+    font-size: 14px;
+  }
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #455336;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: none;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+
+<div class="login-box">
+  <h2>Admin Login</h2>
+  <input type="email" id="email" placeholder="Admin Email">
+  <input type="password" id="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <div class="loader" id="loader"></div>
+  <p class="error" id="errorMsg"></p>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged,
+  setPersistence,
+  browserSessionPersistence
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+  authDomain: "trendora-1cd23.firebaseapp.com",
+  projectId: "trendora-1cd23",
+  storageBucket: "trendora-1cd23.appspot.com",
+  messagingSenderId: "1080352553475",
+  appId: "1:1080352553475:web:850319561617a21fdfec36",
+
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+await setPersistence(auth, browserSessionPersistence);
+
+const allowedAdminEmails = ["anshbajpai3@gmail.com"]; 
+const loginBtn = document.getElementById("loginBtn");
+const loader = document.getElementById("loader");
+const errorMsg = document.getElementById("errorMsg");
+
+const handleRedirection = () => {
+  window.location.replace("admin-panel.html");
+};
+
+// ---------------- AUTO CHECK LOGIN ----------------
+onAuthStateChanged(auth, user => {
+  if (user) {
+    if (allowedAdminEmails.includes(user.email)) {
+      // Admin already logged in → redirect
+      handleRedirection();
+    } else {
+      // Someone logged in who is NOT admin → show login page
+      // Optionally, you could show a message
+      console.log("Logged-in user is not admin, please login as admin.");
+    }
+  }
+});
+
+document.getElementById("password").addEventListener("keydown", event => { if(event.key === "Enter") loginBtn.click(); });
+// ---------------- LOGIN BUTTON ----------------
+loginBtn.addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value;
+  errorMsg.innerText = "";
+  
+  if (!email || !password) {
+    errorMsg.innerText = "Please enter email and password";
+    return;
+  }
+
+  if (!allowedAdminEmails.includes(email)) {
+    errorMsg.innerText = "This email is not authorized as admin";
+    return;
+  }
+
+  loader.style.display = "block";
+  loginBtn.disabled = true;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    handleRedirection();
+  } catch (err) {
+    console.error(err);
+    errorMsg.innerText = err.code === "auth/network-request-failed" ? "Could not connect to sign-in. Check your connection and try again." : err.code === "auth/too-many-requests" ? "Too many attempts. Please try again later." : "Invalid email or password";
+  } finally {
+    loader.style.display = "none";
+    loginBtn.disabled = false;
+  }
+});
+</script>
+
+
+<script src="js/main.js" defer></script>
+</body>
+</html>

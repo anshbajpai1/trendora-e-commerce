@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendora - Users & Discounts</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf9f6;
+    --panel: #ffffff;
+    --text: #303829;
+    --muted: #7b826f;
+    --line: #e0e3d7;
+    --primary: #455336;
+    --primary-dark: #303c24;
+    --success: #138a55;
+    --warning: #b7791f;
+    --danger: #c24135;
+    --shadow: 0 12px 30px rgba(22, 32, 51, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+  .icon { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 28px;
+    background: rgba(255,255,255,0.94);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+  }
+  .brand h1 { margin: 0; font-size: 23px; letter-spacing: 0; }
+  .brand p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+  .top-actions, .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    transition: 0.18s ease;
+  }
+  .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+  .btn.secondary { background: #eff2e7; color: var(--primary); border: 1px solid #d7dfc8; }
+  .btn.secondary:hover { background: #e4ead9; }
+  .btn.danger { background: var(--danger); }
+  .btn.danger:hover { background: #9f3029; }
+  .btn.ghost { background: #fff; color: var(--text); border: 1px solid var(--line); }
+  .btn.ghost:hover { background: #f8f9f3; }
+  .btn.loading { pointer-events: none; opacity: 0.78; }
+  .btn.loading::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .page { width: min(1380px, calc(100% - 32px)); margin: 26px auto 48px; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+  .stat span { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+  .stat strong { display: block; margin-top: 8px; font-size: 26px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 18px; }
+  .panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+  .panel-head h2 { margin: 0; font-size: 18px; }
+  .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .panel-body { padding: 18px 20px 20px; }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  label { font-size: 13px; font-weight: 700; color: #515c43; }
+  input, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; background: #fff; color: var(--text); outline: none; }
+  input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(36,87,214,0.12); }
+  .coupon-form { display: grid; grid-template-columns: 1.4fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr auto; gap: 10px; align-items: end; }
+  .toolbar { display: grid; grid-template-columns: 1fr 190px; gap: 10px; margin-bottom: 14px; }
+  .user-list { display: grid; gap: 12px; }
+  .user-card { display: grid; grid-template-columns: minmax(210px, 0.75fr) minmax(420px, 1.4fr); gap: 16px; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fff; }
+  .user-card h3 { margin: 0 0 6px; font-size: 16px; }
+  .user-card p { margin: 4px 0; color: var(--muted); font-size: 13px; word-break: break-word; }
+  .user-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .coupon-list { grid-column: 1 / -1; display: grid; gap: 8px; margin-top: 10px; }
+  .coupon-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 8px; background: #f8f9f3; border: 1px solid #edf0e5; font-size: 13px; }
+  .code { font-weight: 800; letter-spacing: 0.04em; color: var(--primary); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 800; background: #eff2e7; color: var(--primary); }
+  .pill.success { background: #e8f7ef; color: var(--success); }
+  .pill.warning { background: #fff5dc; color: var(--warning); }
+  .pill.danger { background: #feeceb; color: var(--danger); }
+  .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 18px; text-align: center; }
+  .admin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(16, 24, 40, 0.58);
+  }
+  .admin-modal.open { display: flex; }
+  .admin-dialog {
+    width: min(760px, 100%);
+    max-height: min(86vh, 780px);
+    overflow: auto;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 24px 70px rgba(16,24,40,0.28);
+  }
+  .admin-dialog-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    padding: 16px 18px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .admin-dialog-head h2 { margin: 0; font-size: 18px; }
+  .admin-dialog-body { padding: 18px; display: grid; gap: 12px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  .detail-item, .order-card {
+    border: 1px solid #edf0e5;
+    border-radius: 8px;
+    background: #f8f9f3;
+    padding: 12px;
+    min-width: 0;
+  }
+  .detail-item span { display: block; color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+  .detail-item strong, .detail-item p, .order-card p { overflow-wrap: anywhere; }
+  .detail-item strong { display: block; margin-top: 5px; }
+  .order-card { display: grid; gap: 8px; }
+  .order-card h3 { margin: 0; font-size: 15px; color: var(--primary); }
+  .order-items { display: grid; gap: 9px; }
+  .order-item {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 9px;
+    border: 1px solid #edf0e5;
+    border-radius: 8px;
+    background: #fff;
+  }
+  .order-item img { width: 58px; height: 58px; border-radius: 8px; object-fit: cover; background: #eef0e6; display: block; }
+  .order-item a { display: block; color: inherit; text-decoration: none; }
+  .order-item h4 { margin: 0 0 4px; font-size: 13px; overflow-wrap: anywhere; }
+  .order-item span { display: block; color: var(--muted); font-size: 12px; font-weight: 800; }
+  .order-item strong { white-space: nowrap; }
+  @media (max-width: 1100px) {
+    .coupon-form { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .user-card, .stats { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 680px) {
+    .topbar { align-items: flex-start; flex-direction: column; padding: 14px 16px; }
+    .page { width: min(100% - 20px, 1380px); margin-top: 16px; }
+    .coupon-form, .toolbar { grid-template-columns: 1fr; }
+    .coupon-row { align-items: flex-start; flex-direction: column; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .admin-dialog-head { align-items: flex-start; flex-direction: column; }
+    .order-item { grid-template-columns: 50px minmax(0, 1fr); }
+    .order-item img { width: 50px; height: 50px; }
+    .order-item strong { grid-column: 2; }
+  }
+</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+<div class="topbar">
+  <div class="brand">
+    <h1>Users & Discounts</h1>
+    <p>Search users, manage private coupons, and create common store-wide codes</p>
+  </div>
+  <div class="top-actions">
+    <button id="goToAdmin" class="btn secondary" type="button">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+      Admin Home
+    </button>
+    <button id="logoutBtn" class="btn danger" type="button">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
+      Logout
+    </button>
+  </div>
+</div>
+
+<main class="page">
+  <section class="stats">
+    <div class="stat"><span>Users</span><strong id="userCount">0</strong></div>
+    <div class="stat"><span>Private Codes</span><strong id="privateCodeCount">0</strong></div>
+    <div class="stat"><span>Common Codes</span><strong id="globalCodeCount">0</strong></div>
+    <div class="stat"><span>Total Redemptions</span><strong id="redemptionCount">0</strong></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Common Code For All Users</h2>
+        <p>Create one code that any logged-in user can apply at checkout.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <form id="globalCouponForm" class="coupon-form">
+        <div class="field">
+          <label>Code</label>
+          <input name="code" value="TRENDORA10" maxlength="18">
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select name="type">
+            <option value="percent">Percent</option>
+            <option value="flat">Flat amount</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Value</label>
+          <input name="amount" type="number" min="1" value="10">
+        </div>
+        <div class="field">
+          <label>Min Order</label>
+          <input name="minOrder" type="number" min="0" value="0">
+        </div>
+        <div class="field">
+          <label>Max Uses</label>
+          <input name="maxUses" type="number" min="1" value="100">
+        </div>
+        <div class="field">
+          <label>Expires On</label>
+          <input name="expiresAt" type="date">
+        </div>
+        <button class="btn" type="submit">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Generate
+        </button>
+      </form>
+      <div id="globalCodeList" class="coupon-list"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>All Users</h2>
+        <p>Search by name, email, phone, user ID or discount code.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="toolbar">
+        <input id="userSearch" type="search" placeholder="Search users or codes">
+        <select id="discountFilter">
+          <option value="all">All users</option>
+          <option value="with">Users with private codes</option>
+          <option value="without">Users without private codes</option>
+        </select>
+      </div>
+      <div id="userList" class="user-list"><div class="order-skeleton" role="status" aria-label="Loading customers"><div class="loading-line tall"></div><div class="loading-line"></div></div></div>
+    </div>
+  </section>
+</main>
+
+<div id="adminUserModal" class="admin-modal" aria-hidden="true">
+  <div class="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="adminUserModalTitle">
+    <div class="admin-dialog-head">
+      <h2 id="adminUserModalTitle">User Details</h2>
+      <button id="closeUserModal" class="btn ghost" type="button">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        Close
+      </button>
+    </div>
+    <div id="adminUserModalBody" class="admin-dialog-body"></div>
+  </div>
+</div>
+
+<script src="js/email-config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, getDoc, getDocs, runTransaction, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getAuth, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+  authDomain: "trendora-1cd23.firebaseapp.com",
+  projectId: "trendora-1cd23",
+  storageBucket: "trendora-1cd23.appspot.com",
+  messagingSenderId: "1080352553475",
+  appId: "1:1080352553475:web:850319561617a21fdfec36"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+await setPersistence(auth, browserSessionPersistence);
+
+const adminEmails = ["anshbajpai3@gmail.com"];
+let resolveAdmin; const adminReady = new Promise(resolve => { resolveAdmin = resolve; });
+onAuthStateChanged(auth, async (user) => {
+  if (!user || !adminEmails.includes(user.email)) {
+    await window.trendoraDialog.alert("Admin session required. Please login again.");
+    window.location.href = "admin-login.html";
+    return;
+  }
+  resolveAdmin(user);
+});
+
+const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" });
+const userList = document.getElementById("userList");
+const userSearch = document.getElementById("userSearch");
+const discountFilter = document.getElementById("discountFilter");
+const globalCodeList = document.getElementById("globalCodeList");
+const userModal = document.getElementById("adminUserModal");
+const userModalTitle = document.getElementById("adminUserModalTitle");
+const userModalBody = document.getElementById("adminUserModalBody");
+const EMAIL_API_URL = window.TrendoraEmail?.functionUrl || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
+
+let users = [];
+let discounts = [];
+
+function generateCode(seed = "TRENDORA") {
+  const clean = seed.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7) || "TREND";
+  const random = Math.random().toString(36).slice(2, 7).toUpperCase();
+  return `${clean}${random}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function sendTrendoraEmail(type, to, payload) {
+  if (!to) return;
+  try {
+    const response = await fetch(EMAIL_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, to, payload })
+    });
+    const result = await response.json();
+    console.log("Email:", result.message);
+  } catch (error) {
+    console.error("Email sending failed:", error);
+  }
+}
+
+function formatDate(value) {
+  if (!value) return "Not available";
+  if (value.toDate) return value.toDate().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  if (value.seconds) return new Date(value.seconds * 1000).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  return String(value);
+}
+
+function setButtonLoading(button, loading) {
+  if (!button) return;
+  button.classList.toggle("loading", loading);
+  button.disabled = loading;
+}
+
+function openUserModal(title, html) {
+  userModalTitle.textContent = title;
+  userModalBody.innerHTML = html;
+  userModal.classList.add("open");
+  userModal.setAttribute("aria-hidden", "false");
+}
+
+function closeUserModal() {
+  userModal.classList.remove("open");
+  userModal.setAttribute("aria-hidden", "true");
+}
+
+function renderDetailItem(label, value) {
+  return `
+    <div class="detail-item">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value || "Not provided")}</strong>
+    </div>
+  `;
+}
+
+function getItemImage(item) {
+  if (Array.isArray(item.imageUrls) && item.imageUrls.length) return item.imageUrls[0];
+  return item.imageUrl || "";
+}
+
+async function enrichOrderItems(order) {
+  const items = await Promise.all((order.items || []).map(async item => {
+    if (!item.id || item.imageUrl || (Array.isArray(item.imageUrls) && item.imageUrls.length)) return item;
+    try {
+      const snap = await getDoc(doc(db, "products", item.id));
+      if (!snap.exists()) return item;
+      const data = snap.data();
+      const imageUrls = Array.isArray(data.imageUrls) ? data.imageUrls.filter(Boolean) : [];
+      return { ...item, imageUrl: item.imageUrl || imageUrls[0] || data.imageUrl || "", imageUrls: imageUrls.length ? imageUrls : item.imageUrls };
+    } catch (error) {
+      console.error("Product image lookup failed:", error);
+      return item;
+    }
+  }));
+  return { ...order, items };
+}
+
+function renderOrderItems(items = []) {
+  if (!items.length) return "<p>No items found.</p>";
+  return `
+    <div class="order-items">
+      ${items.map(item => `
+        <div class="order-item">
+          <a href="product-details.html?id=${item.id || ""}" title="View product details">
+            <img src="${getItemImage(item)}" alt="${escapeHtml(item.name || "Product")}">
+          </a>
+          <div>
+            <h4>${escapeHtml(item.name || "Product")}</h4>
+            <span>Qty ${Number(item.quantity || 1)} x ${currency.format(Number(item.price || 0))}</span>
+          </div>
+          <strong>${currency.format(Number(item.price || 0) * Number(item.quantity || 1))}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+async function showFullProfile(uid, trigger) {
+  setButtonLoading(trigger, true);
+  try {
+    const rootSnap = await getDoc(doc(db, "users", uid));
+    const profileSnap = await getDoc(doc(db, "users", uid, "profile", "info"));
+    const rootData = rootSnap.exists() ? rootSnap.data() : {};
+    const profileData = profileSnap.exists() ? profileSnap.data() : {};
+    const data = { ...profileData, ...rootData, uid };
+    const addresses = Array.isArray(data.addresses) ? data.addresses : (data.address ? [data.address] : []);
+    openUserModal(`${data.name || data.email || "User"} Profile`, `
+      <div class="detail-grid">
+        ${renderDetailItem("Name", data.name || data.fullName)}
+        ${renderDetailItem("Email", data.email)}
+        ${renderDetailItem("Phone", data.phone || data.phoneNumber)}
+        ${renderDetailItem("User ID", uid)}
+        ${renderDetailItem("Joined", formatDate(data.createdAt))}
+        ${renderDetailItem("Last Updated", formatDate(data.updatedAt || data.lastUpdatedAt))}
+      </div>
+      <div class="detail-item">
+        <span>Delivery Addresses</span>
+        ${addresses.length ? `<p>${addresses.map(address => escapeHtml(typeof address === "string" ? address : address.address || address.line || "")).filter(Boolean).join("<br>")}</p>` : "<p>Not provided</p>"}
+      </div>
+    `);
+  } catch (error) {
+    console.error(error);
+    alert("Unable to load full profile.");
+  } finally {
+    setButtonLoading(trigger, false);
+  }
+}
+
+async function showOrderHistory(uid, trigger) {
+  setButtonLoading(trigger, true);
+  try {
+    const snap = await getDocs(collection(db, "users", uid, "orders"));
+    const orders = (await Promise.all(snap.docs.map(orderDoc => enrichOrderItems({ ...orderDoc.data(), id: orderDoc.id }))))
+      .sort((a, b) => Number(b.orderPlacedAtMs || (b.timestamp?.seconds || 0)*1000) - Number(a.orderPlacedAtMs || (a.timestamp?.seconds || 0)*1000));
+    if (!orders.length) {
+      openUserModal("Order History", '<div class="empty">No orders found for this user.</div>');
+      return;
+    }
+    openUserModal("Order History", orders.map(order => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      return `
+        <article class="order-card">
+          <h3>Order ${escapeHtml(order.id)}</h3>
+          <p><strong>Total:</strong> ${currency.format(Number(order.totalAmount || 0))}</p>
+          <p><strong>Status:</strong> ${escapeHtml(order.orderStatus || "Pending")} &nbsp; <strong>Payment:</strong> ${escapeHtml(order.paymentStatus || "Pending")}</p>
+          <p><strong>Date:</strong> ${escapeHtml(order.orderDateTime || formatDate(order.timestamp))}</p>
+          <p><strong>Address:</strong> ${escapeHtml(order.address || "Not provided")}</p>
+          <p><strong>Items:</strong></p>
+          ${renderOrderItems(items)}
+        </article>
+      `;
+    }).join(""));
+  } catch (error) {
+    console.error(error);
+    alert("Unable to load order history.");
+  } finally {
+    setButtonLoading(trigger, false);
+  }
+}
+
+function statusFor(code) {
+  if (code.status === "disabled") return "Disabled";
+  if (code.expiresAt && new Date(code.expiresAt + "T23:59:59") < new Date()) return "Expired";
+  if (Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses)) return "Used up";
+  return "Active";
+}
+
+function buildPayload(form, scope, user = null) {
+  const code = form.code.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const type = form.type.value;
+  const amount = Number(form.amount.value);
+  const minOrder = Number(form.minOrder.value || 0);
+  const maxUses = Number(form.maxUses.value || 1);
+  const expiresAt = form.expiresAt.value;
+
+  if (!code || !Number.isFinite(amount) || amount < 1 || !Number.isSafeInteger(maxUses) || maxUses < 1 || !Number.isFinite(minOrder) || minOrder < 0) {
+    throw new Error("Please enter a valid code, discount value and max uses.");
+  }
+  if(expiresAt && new Date(expiresAt + "T23:59:59+05:30") < new Date()) throw new Error("Choose an expiry date today or later.");
+  if (type === "percent" && amount > 90) {
+    throw new Error("Percent discount cannot be more than 90%.");
+  }
+
+  return {
+    code,
+    type,
+    amount,
+    minOrder,
+    maxUses,
+    usedCount: 0,
+    expiresAt,
+    status: "active",
+    scope,
+    userUID: user?.uid || "",
+    userEmail: user?.email || "",
+    userName: user?.name || "",
+    createdAt: serverTimestamp()
+  };
+}
+
+async function saveCode(payload) {
+  const ref = doc(db, "discountCodes", payload.code);
+  await runTransaction(db, async tx => {
+    const existing = await tx.get(ref);
+    if(existing.exists()) throw new Error("This code already exists. Choose a different code.");
+    tx.set(ref,payload);
+    if(payload.userUID) tx.set(doc(db,"users",payload.userUID,"discounts",payload.code),payload);
+  });
+}
+const savePrivateCode = saveCode;
+const saveGlobalCode = saveCode;
+
+function codeStatusClass(status) {
+  if (status === "Active") return "success";
+  if (status === "Used up") return "warning";
+  return "danger";
+}
+
+function discountText(code) {
+  return code.type === "flat" ? currency.format(Number(code.amount || 0)) : `${Number(code.amount || 0)}%`;
+}
+
+function emailDiscountPayload(code) {
+  return {
+    code: code.code,
+    type: code.type,
+    amount: code.amount,
+    minOrder: code.minOrder,
+    maxUses: code.maxUses,
+    expiresAt: code.expiresAt,
+    userName: code.userName,
+    userEmail: code.userEmail
+  };
+}
+
+function renderCodeRow(code, uid = "") {
+  const status = statusFor(code);
+  const toggleTarget = uid ? `data-uid="${uid}"` : "";
+  return `
+    <div class="coupon-row">
+      <div>
+        <span class="code">${escapeHtml(code.code)}</span>
+        <span class="pill ${codeStatusClass(status)}">${status}</span>
+        <span class="pill">${code.scope === "global" ? "Common" : "Private"}</span>
+        <div style="color:var(--muted);margin-top:5px;">
+          ${discountText(code)} off · min ${currency.format(Number(code.minOrder || 0))} · used ${Number(code.usedCount || 0)}/${Number(code.maxUses || 1)}${code.expiresAt ? ` · expires ${escapeHtml(code.expiresAt)}` : ""}
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn ghost copyCodeBtn" data-code="${escapeHtml(code.code)}" type="button">Copy</button>
+        <button class="btn ${code.status === "disabled" ? "secondary" : "danger"} toggleCodeBtn" data-id="${code.id}" ${toggleTarget} data-status="${code.status || "active"}" type="button">${code.status === "disabled" ? "Enable" : "Disable"}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGlobalCodes() {
+  const globalCodes = discounts.filter(code => code.scope === "global" || !code.userUID);
+  document.getElementById("globalCodeCount").innerText = globalCodes.length;
+  globalCodeList.innerHTML = globalCodes.length ? globalCodes.map(code => renderCodeRow(code)).join("") : '<div class="empty">No common code generated yet.</div>';
+  bindCodeButtons(globalCodeList);
+}
+
+function renderUsers() {
+  const search = userSearch.value.trim().toLowerCase();
+  const filter = discountFilter.value;
+
+  const filtered = users.filter(user => {
+    const privateCodes = discounts.filter(code => code.userUID === user.uid);
+    const codeText = privateCodes.map(code => code.code).join(" ");
+    const text = `${user.uid || ""} ${user.name || ""} ${user.email || ""} ${user.phone || ""} ${codeText}`.toLowerCase();
+    if (search && !text.includes(search)) return false;
+    if (filter === "with" && !privateCodes.length) return false;
+    if (filter === "without" && privateCodes.length) return false;
+    return true;
+  });
+
+  userList.innerHTML = filtered.length ? "" : '<div class="empty">No users match this search.</div>';
+  filtered.forEach(user => {
+    const privateCodes = discounts.filter(code => code.userUID === user.uid).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    const div = document.createElement("div");
+    div.className = "user-card";
+    div.innerHTML = `
+      <div>
+        <h3>${escapeHtml(user.name || "Unnamed user")}</h3>
+        <p><strong>Email:</strong> ${escapeHtml(user.email || "No email")}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(user.phone || "No phone")}</p>
+        <p><strong>User ID:</strong> ${user.uid}</p>
+        <span class="pill ${privateCodes.length ? "success" : ""}">${privateCodes.length} private code${privateCodes.length === 1 ? "" : "s"}</span>
+        <div class="user-actions">
+          <button class="btn secondary viewProfileBtn" data-uid="${user.uid}" type="button">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M19 21a7 7 0 0 0-14 0"/><circle cx="12" cy="8" r="4"/></svg>
+            Full Profile
+          </button>
+          <button class="btn ghost viewOrdersBtn" data-uid="${user.uid}" type="button">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+            Orders
+          </button>
+        </div>
+      </div>
+      <form class="coupon-form privateCouponForm" data-uid="${user.uid}">
+        <div class="field">
+          <label>Code</label>
+          <input name="code" value="${generateCode(user.name || user.email || "USER")}" maxlength="18">
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select name="type">
+            <option value="percent">Percent</option>
+            <option value="flat">Flat amount</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Value</label>
+          <input name="amount" type="number" min="1" value="10">
+        </div>
+        <div class="field">
+          <label>Min Order</label>
+          <input name="minOrder" type="number" min="0" value="0">
+        </div>
+        <div class="field">
+          <label>Max Uses</label>
+          <input name="maxUses" type="number" min="1" value="1">
+        </div>
+        <div class="field">
+          <label>Expires On</label>
+          <input name="expiresAt" type="date">
+        </div>
+        <button class="btn" type="submit">Generate</button>
+      </form>
+      <div class="coupon-list">
+        ${privateCodes.length ? privateCodes.map(code => renderCodeRow(code, user.uid)).join("") : '<div class="empty">No private discount code assigned yet.</div>'}
+      </div>
+    `;
+    userList.appendChild(div);
+  });
+
+  userList.querySelectorAll(".privateCouponForm").forEach(form => {
+    form.onsubmit = async event => {
+      event.preventDefault();
+      const user = users.find(item => item.uid === form.dataset.uid);
+      try {
+        const payload = buildPayload(form, "private", user);
+        await savePrivateCode(payload);
+        await sendTrendoraEmail("discount-code", payload.userEmail, { code: emailDiscountPayload(payload) });
+        form.code.value = generateCode(user?.name || user?.email || "USER");
+        alert(`Private code ${payload.code} generated for ${user?.name || user?.email || "user"}.`);
+      } catch (error) {
+        alert(error.message || "Unable to generate discount code.");
+      }
+    };
+  });
+
+  userList.querySelectorAll(".viewProfileBtn").forEach(btn => {
+    btn.onclick = () => showFullProfile(btn.dataset.uid, btn);
+  });
+
+  userList.querySelectorAll(".viewOrdersBtn").forEach(btn => {
+    btn.onclick = () => showOrderHistory(btn.dataset.uid, btn);
+  });
+
+  bindCodeButtons(userList);
+}
+
+function bindCodeButtons(scope) {
+  scope.querySelectorAll(".copyCodeBtn").forEach(btn => {
+    btn.onclick = async () => {
+      try { await navigator.clipboard.writeText(btn.dataset.code); } catch { alert("Copy this code: " + btn.dataset.code); return; }
+      btn.textContent = "Copied";
+      setTimeout(() => btn.textContent = "Copy", 1200);
+    };
+  });
+
+  scope.querySelectorAll(".toggleCodeBtn").forEach(btn => {
+    btn.onclick = async () => {
+      const nextStatus = btn.dataset.status === "disabled" ? "active" : "disabled";
+      btn.disabled = true;
+      try {
+        const batch=writeBatch(db);
+        batch.update(doc(db,"discountCodes",btn.dataset.id),{status:nextStatus});
+        if(btn.dataset.uid) batch.update(doc(db,"users",btn.dataset.uid,"discounts",btn.dataset.id),{status:nextStatus});
+        await batch.commit();
+      } catch(error) { alert("Could not update code: " + error.message); }
+      finally { btn.disabled=false; }
+    };
+  });
+}
+
+document.getElementById("globalCouponForm").onsubmit = async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const payload = buildPayload(form, "global");
+    await saveGlobalCode(payload);
+    form.code.value = generateCode("TRENDORA");
+    alert(`Common code ${payload.code} generated for all users.`);
+  } catch (error) {
+    alert(error.message || "Unable to generate common code.");
+  }
+};
+
+await adminReady;
+onSnapshot(collection(db, "users"), (snapshot) => {
+  users = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
+  document.getElementById("userCount").innerText = users.length;
+  renderUsers();
+}, () => { userList.innerHTML = '<div class="empty">Could not load customers. Reload to try again.</div>'; });
+
+onSnapshot(collection(db, "discountCodes"), (snapshot) => {
+  discounts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  document.getElementById("privateCodeCount").innerText = discounts.filter(code => code.userUID).length;
+  document.getElementById("redemptionCount").innerText = discounts.reduce((sum, d) => sum + Number(d.usedCount || 0), 0);
+  renderGlobalCodes();
+  renderUsers();
+}, () => { globalCodeList.innerHTML = '<div class="empty">Could not load offers. Reload to try again.</div>'; });
+
+userSearch.addEventListener("input", renderUsers);
+discountFilter.addEventListener("change", renderUsers);
+document.getElementById("closeUserModal").onclick = closeUserModal;
+userModal.addEventListener("click", event => {
+  if (event.target === userModal) closeUserModal();
+});
+const legacy_goToAdmin = document.getElementById("goToAdmin"); if (legacy_goToAdmin) legacy_goToAdmin.onclick = () => window.location.href = "admin-panel.html";
+const legacy_logoutBtn = document.getElementById("logoutBtn"); if (legacy_logoutBtn) legacy_logoutBtn.onclick = async () => {
+  await signOut(auth);
+  window.location.href = "admin-login.html";
+};
+</script>
+<script src="js/main.js" defer></script>
+</body>
+</html>

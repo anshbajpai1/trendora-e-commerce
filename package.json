@@ -1,0 +1,11 @@
+{
+  "name": "trendora-storefront",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/preview.cjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/commerce.test.mjs"
+  }
+}
+

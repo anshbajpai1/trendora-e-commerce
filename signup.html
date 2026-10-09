@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trendora - Signup</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #faf9f6;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #333;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background-color: #fff;
+      padding: 40px 30px;
+      border-radius: 8px;
+      border: 1px solid #e0e3d7;
+      box-shadow: 0 12px 30px rgba(22,32,51,0.08);
+      text-align: center;
+      position: relative;
+    }
+
+    h2 {
+      margin-bottom: 30px;
+      color: #303829;
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 12px 0;
+      border: 1px solid #e0e3d7;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      border-color: #65784b;
+      box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.12);
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      background: #455336;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    button:hover {
+      background: #303c24;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(23,63,159,0.18);
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin: -10px 0 0 -10px;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    p {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    p a {
+      color: #000;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    p a:hover {
+      color: #37452a;
+    }
+
+    @media (max-width: 450px) {
+      .container { padding: 30px 20px; }
+    }
+  </style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/storefront.css">
+<script src="js/experience.js" defer></script>
+</head>
+<body class="store-page">
+  <div class="container">
+    <h2>Sign Up</h2>
+    <input type="text" id="name" placeholder="Full Name">
+    <input type="email" id="email" placeholder="Email">
+    <input type="text" id="phone" placeholder="Phone Number">
+    <input type="password" id="password" placeholder="Password">
+    <button id="signupBtn">Sign Up
+      <div class="spinner" id="spinner"></div>
+    </button>
+    <p>Already have an account? <a href="login.html">Login here</a></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+      getAuth, 
+      createUserWithEmailAndPassword, 
+      updateProfile,
+      setPersistence,
+      browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      setDoc 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+      authDomain: "trendora-1cd23.firebaseapp.com",
+      projectId: "trendora-1cd23",
+      storageBucket: "trendora-1cd23.firebasestorage.app",
+      messagingSenderId: "1080352553475",
+      appId: "1:1080352553475:web:850319561617a21fdfec36",
+      measurementId: "G-LXQXX0YW38"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    await setPersistence(auth, browserLocalPersistence);
+
+    const signupBtn = document.getElementById("signupBtn");
+    const spinner = document.getElementById("spinner");
+
+    async function signup() {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!name || !email || !phone || !password) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      // Basic phone validation
+      const phoneRegex = /^[0-9]{10}$/;
+      if (!phoneRegex.test(phone)) {
+        alert("Please enter a valid 10-digit phone number!");
+        return;
+      }
+
+      try {
+        spinner.style.display = "block";
+        signupBtn.disabled = true;
+
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Update Firebase Auth profile name
+        await updateProfile(user, { displayName: name });
+
+        // Save user data to Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          name: name,
+          email: email,
+          phone: phone,
+          addresses: []
+        });
+
+        await setDoc(doc(db, "users", user.uid, "profile", "info"), {
+          name: name,
+          email: email,
+          phone: phone,
+          addresses: []
+        });
+
+        await window.trendoraDialog.alert("Signup successful!");
+        window.location.href = "login.html";
+      } catch (error) {
+        alert("Error: " + error.message);
+      } finally {
+        spinner.style.display = "none";
+        signupBtn.disabled = false;
+      }
+    }
+
+    signupBtn.addEventListener("click", signup);
+
+    // Press Enter to signup
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") signup();
+    });
+  </script>
+<script src="js/main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+}
+
+:root {
+  --trendora-bg: #f5f7fb;
+  --trendora-surface: #ffffff;
+  --trendora-text: #172033;
+  --trendora-muted: #667085;
+  --trendora-line: #d9e0ea;
+  --trendora-primary: #2457d6;
+  --trendora-primary-dark: #173f9f;
+  --trendora-ink: #101828;
+  --trendora-shadow: 0 12px 30px rgba(22, 32, 51, 0.08);
+}
+
+body.has-trendora-footer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.has-trendora-footer > main,
+body.has-trendora-footer > .container,
+body.has-trendora-footer > .cart-container,
+body.has-trendora-footer > .checkout-shell,
+body.has-trendora-footer > #products {
+  flex: 0 0 auto;
+}
+
+
+
+body > nav:not(.trendora-navbar),
+body > .topbar:not(.trendora-navbar) {
+  display: none;
+}
+
+.trendora-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--trendora-line);
+  box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08);
+  backdrop-filter: blur(12px);
+  width: 100%;
+}
+
+.trendora-brand {
+  display: inline-flex;
+  flex-direction: column;
+  color: var(--trendora-primary);
+  text-decoration: none;
+  line-height: 1.05;
+  min-width: max-content;
+}
+
+.trendora-brand span {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.trendora-brand small {
+  margin-top: 4px;
+  color: var(--trendora-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trendora-navlinks {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trendora-navlinks a,
+.trendora-navlinks button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 9px 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--trendora-primary);
+  color: #fff;
+  text-decoration: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.18s ease;
+  white-space: nowrap;
+  width: auto;
+  margin: 0;
+}
+
+.trendora-navlinks a:hover,
+.trendora-navlinks button:hover {
+  background: var(--trendora-primary-dark);
+  transform: translateY(-1px);
+}
+
+.trendora-navlinks a.active,
+.trendora-navlinks button.active {
+  background: #eef3ff;
+  border-color: #9bb8ff;
+  color: var(--trendora-primary);
+  box-shadow: inset 0 0 0 1px rgba(36, 87, 214, 0.14), 0 8px 18px rgba(36, 87, 214, 0.12);
+}
+
+.trendora-navlinks .outline {
+  background: #eef3ff;
+  border-color: #cad8ff;
+  color: var(--trendora-primary);
+}
+
+.trendora-navlinks .outline:hover {
+  background: #dfe8ff;
+}
+
+.trendora-icon-btn {
+  position: relative;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.trendora-icon-btn svg,
+.trendora-navlinks svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.trendora-cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f04438;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.trendora-profile-menu {
+  position: relative;
+}
+
+.trendora-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  padding: 10px;
+  display: none;
+  background: #fff;
+  border: 1px solid var(--trendora-line);
+  border-radius: 8px;
+  box-shadow: var(--trendora-shadow);
+}
+
+.trendora-profile-dropdown.open {
+  display: grid;
+  gap: 8px;
+}
+
+.trendora-profile-dropdown strong {
+  color: var(--trendora-text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  padding: 4px 4px 8px;
+  border-bottom: 1px solid #edf1f7;
+}
+
+.trendora-profile-dropdown a,
+.trendora-profile-dropdown button {
+  width: 100%;
+  min-height: 38px;
+  justify-content: flex-start;
+  background: #f8fafc;
+  color: var(--trendora-text);
+  border: 1px solid #edf1f7;
+}
+
+.trendora-profile-dropdown a:hover,
+.trendora-profile-dropdown button:hover {
+  background: #eef3ff;
+  color: var(--trendora-primary);
+}
+
+.trendora-auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(16, 24, 40, 0.58);
+}
+
+.trendora-auth-modal.open {
+  display: flex;
+}
+
+.trendora-auth-dialog {
+  position: relative;
+  width: min(420px, 100%);
+  background: #fff;
+  border: 1px solid var(--trendora-line);
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(16, 24, 40, 0.28);
+  padding: 22px;
+}
+
+.trendora-auth-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f4f7;
+  color: var(--trendora-text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.trendora-auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 34px 18px 0;
+}
+
+.trendora-auth-tabs button {
+  min-height: 40px;
+  border: 1px solid var(--trendora-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--trendora-text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trendora-auth-tabs button.active {
+  background: var(--trendora-primary);
+  border-color: var(--trendora-primary);
+  color: #fff;
+}
+
+.trendora-auth-form h2 {
+  margin: 0 0 6px;
+  color: var(--trendora-text);
+  font-size: 24px;
+}
+
+.trendora-auth-form p {
+  margin: 0 0 16px;
+  color: var(--trendora-muted);
+}
+
+.trendora-auth-form input {
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px 13px;
+  border: 1px solid var(--trendora-line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.trendora-auth-form input:focus {
+  outline: none;
+  border-color: var(--trendora-primary);
+  box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.12);
+}
+
+.trendora-auth-form button[type="submit"] {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--trendora-primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}

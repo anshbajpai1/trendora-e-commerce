@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#262820">
+  <meta name="description" content="Check your Trendora order status with your order ID and email address.">
+  <title>Track an order | Trendora</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <script src="js/main.js" defer></script>
+  <script src="js/experience.js" defer></script>
+  <style>
+    .tracking-page{min-height:calc(100vh - 280px);width:min(100% - 40px,1040px);margin:54px auto 70px}.tracking-intro{max-width:550px;margin-bottom:30px}.tracking-intro .eyebrow{margin-bottom:12px}.tracking-intro h1{margin:0;font:500 clamp(34px,5vw,52px)/1.12 'Manrope',sans-serif;color:#303829}.tracking-intro p{margin:14px 0 0;color:#707969;font-size:14px;line-height:1.7}.tracking-grid{display:grid;grid-template-columns:minmax(0,390px) minmax(0,1fr);gap:24px;align-items:start}.tracking-form,.tracking-result{border:1px solid #e0e5d8;background:#fff;border-radius:7px;padding:27px}.tracking-form h2,.tracking-result h2{margin:0;color:#35412a;font:600 19px/1.3 'Manrope',sans-serif}.tracking-form>p{margin:7px 0 22px;color:#7a8271;font-size:12px;line-height:1.6}.track-field{display:grid;gap:7px;margin-bottom:16px}.track-field label{color:#556149;font-size:11px;font-weight:700}.track-field input{width:100%;box-sizing:border-box;border:1px solid #dce4d1;border-radius:4px;padding:12px 13px;background:#fff;color:#303829;font:14px 'DM Sans',sans-serif}.track-field input:focus{outline:0;border-color:#718653;box-shadow:0 0 0 3px rgba(113,134,83,.13)}.track-submit{width:100%;margin-top:4px;border:1px solid #39442e;border-radius:4px;padding:12px 16px;background:#39442e;color:#fff;font:700 12px 'DM Sans',sans-serif;cursor:pointer;transition:background .18s ease,transform .18s ease}.track-submit:hover{background:#2d3823;transform:translateY(-1px)}.track-submit:disabled{cursor:wait;transform:none}.tracking-result{min-height:222px}.track-placeholder{height:100%;min-height:165px;display:grid;align-content:center;gap:8px;color:#7e8676}.track-placeholder strong{color:#4b5840;font-size:13px}.track-placeholder span{font-size:12px}.order-summary{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding-bottom:20px;border-bottom:1px solid #e7eadf}.order-summary small{display:block;color:#88907f;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.order-summary strong{display:block;margin-top:5px;color:#35412a;font-size:18px}.status-pill{display:inline-flex;align-items:center;min-height:27px;border-radius:999px;padding:0 11px;background:#edf3e7;color:#476137;font-size:11px;font-weight:700;white-space:nowrap}.status-pill.is-alert{background:#fbeceb;color:#9f453d}.status-pill.is-moving{background:#eaf1f5;color:#3e6376}.tracking-timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:25px}.tracking-step{position:relative;padding:22px 8px 0;text-align:center;color:#99a18f;font-size:10px;line-height:1.4}.tracking-step:before{content:'';position:absolute;top:7px;left:0;right:0;height:2px;background:#e3e7dc}.tracking-step:first-child:before{left:50%}.tracking-step:last-child:before{right:50%}.tracking-dot{position:absolute;z-index:1;top:1px;left:50%;width:13px;height:13px;border:3px solid #fff;border-radius:50%;background:#d8ded1;transform:translateX(-50%);box-shadow:0 0 0 1px #d8ded1}.tracking-step.done{color:#526243;font-weight:700}.tracking-step.done:before{background:#79915b}.tracking-step.done .tracking-dot{background:#79915b;box-shadow:0 0 0 1px #79915b}.tracking-step.current .tracking-dot{background:#39442e;box-shadow:0 0 0 4px #e5ecd9}.tracking-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:26px;padding-top:20px;border-top:1px solid #e7eadf}.tracking-meta span{display:block;color:#899181;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.tracking-meta strong{display:block;margin-top:4px;color:#4d5745;font-size:12px;line-height:1.4;font-weight:600}.tracking-error{color:#9b4740}.tracking-error strong{color:#8d3e38}@media(max-width:760px){.tracking-page{width:calc(100% - 32px);margin:32px auto 45px}.tracking-grid{grid-template-columns:1fr}.tracking-form,.tracking-result{padding:22px}.tracking-timeline{margin-inline:-7px}.tracking-step{font-size:9px;padding-inline:4px}.tracking-meta{grid-template-columns:1fr}.order-summary{flex-direction:column}.status-pill{align-self:flex-start}}
+  </style>
+</head>
+<body class="store-page">
+  <main class="tracking-page">
+    <header class="tracking-intro">
+      <span class="eyebrow">ORDER UPDATES</span>
+      <h1>Track your order.</h1>
+      <p>Enter the order ID from your confirmation and the email used during checkout to see its latest status.</p>
+    </header>
+
+    <div class="tracking-grid">
+      <section class="tracking-form" aria-labelledby="tracking-form-title">
+        <h2 id="tracking-form-title">Find an order</h2>
+        <p>Your details are used only to match this order.</p>
+        <form id="trackOrderForm" novalidate>
+          <div class="track-field">
+            <label for="trackOrderId">Order ID</label>
+            <input id="trackOrderId" name="orderId" type="text" inputmode="numeric" autocomplete="off" placeholder="For example: 1234567" required>
+          </div>
+          <div class="track-field">
+            <label for="trackEmail">Email address</label>
+            <input id="trackEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          </div>
+          <button class="track-submit" type="submit">Track order</button>
+        </form>
+      </section>
+
+      <section class="tracking-result" aria-live="polite" aria-atomic="true" id="trackingResult">
+        <div class="track-placeholder"><strong>Your order status will appear here.</strong><span>Use the Order ID and email from your order confirmation.</span></div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { db } from './js/firebase-client.js';
+    import { collectionGroup, doc, getDoc, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    const form = document.getElementById('trackOrderForm');
+    const result = document.getElementById('trackingResult');
+    const submit = form.querySelector('button[type="submit"]');
+    const stages = ['Placed', 'Processing', 'Shipped', 'Delivered'];
+    const primaryOrderPath = ['admins', 'REPLACE_WITH_ADMIN_UID', 'orders'];
+
+    const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+    const dateValue = order => order.orderDateTime || order.orderDate || order.timestamp?.toDate?.()?.toLocaleDateString('en-IN') || 'Order confirmed';
+    const orderTime = order => Number(order.statusUpdatedAt ? Date.parse(order.statusUpdatedAt) : order.orderPlacedAtMs || 0) || 0;
+
+    function statusInfo(order) {
+      const status = String(order.orderStatus || 'Pending');
+      if (['Cancelled', 'Cancelled by User'].includes(status)) return { label: status, current: -1, tone: 'is-alert' };
+      if (['Delivered', 'Completed'].includes(status)) return { label: 'Delivered', current: 3, tone: '' };
+      if (status === 'Out for Delivery') return { label: status, current: 2, tone: 'is-moving' };
+      if (status === 'Shipped') return { label: status, current: 2, tone: 'is-moving' };
+      if (status === 'Processing') return { label: status, current: 1, tone: '' };
+      return { label: status === 'Pending' ? 'Order placed' : status, current: 0, tone: '' };
+    }
+
+    function renderError(message) {
+      result.innerHTML = `<div class="track-placeholder tracking-error"><strong>We could not find that order.</strong><span>${escapeHTML(message)}</span></div>`;
+    }
+
+    function renderOrder(order) {
+      const info = statusInfo(order);
+      const timeline = info.current < 0
+        ? '<div class="track-placeholder tracking-error"><strong>This order has been cancelled.</strong><span>Contact support if you need any help with this order.</span></div>'
+        : `<div class="tracking-timeline">${stages.map((stage, index) => `<div class="tracking-step ${index <= info.current ? 'done' : ''} ${index === info.current ? 'current' : ''}"><i class="tracking-dot" aria-hidden="true"></i>${stage}</div>`).join('')}</div>`;
+      result.innerHTML = `
+        <div class="order-summary"><div><small>Order ID</small><strong>#${escapeHTML(order.id)}</strong></div><span class="status-pill ${info.tone}">${escapeHTML(info.label)}</span></div>
+        ${timeline}
+        <div class="tracking-meta"><div><span>Order placed</span><strong>${escapeHTML(dateValue(order))}</strong></div><div><span>Payment</span><strong>${escapeHTML(order.paymentStatus || 'Pending')}</strong></div></div>`;
+    }
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const orderId = form.orderId.value.trim().replace(/^order\s*#?\s*/i, '').replace(/^#\s*/, '');
+      const email = form.email.value.trim().toLowerCase();
+      if (!orderId || !email || !form.email.checkValidity()) {
+        renderError('Please enter a valid Order ID and the email used at checkout.');
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = 'Checking order...';
+      result.innerHTML = '<div class="track-placeholder"><strong>Looking up your order...</strong><span>One moment while we check the latest update.</span></div>';
+      try {
+        const primary = await getDoc(doc(db, ...primaryOrderPath, orderId));
+        let candidates = primary.exists() ? [primary.data()] : [];
+        if (!candidates.length) {
+          const snapshot = await getDocs(query(collectionGroup(db, 'orders'), where('id', '==', orderId)));
+          candidates = snapshot.docs.map(item => item.data());
+        }
+        const matches = candidates.filter(order => String(order.userEmail || order.email || order.customerEmail || '').trim().toLowerCase() === email);
+        if (!matches.length) {
+          renderError('Check the Order ID and email address, then try again.');
+          return;
+        }
+        matches.sort((a, b) => orderTime(b) - orderTime(a));
+        renderOrder(matches[0]);
+      } catch (error) {
+        console.error('Order lookup failed:', error);
+        renderError('We could not check the order right now. Please try again shortly.');
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'Track order';
+      }
+    });
+  </script>
+</body>
+</html>

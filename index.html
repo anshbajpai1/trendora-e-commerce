@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#262820"><meta name="description" content="Discover your next everyday favourite at Trendora. Explore our latest collection, shop with ease and track every order."><title>Trendora — A little more everyday.</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/home-components.css"><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/storefront.css"><script src="js/main.js" defer></script><script src="js/experience.js" defer></script></head>
+<body class="store-home"><a class="skip-link" href="#collection">Skip to products</a>
+<div class="store-announcement">Thoughtfully chosen. Ready for your everyday. <a href="#collection">Explore the collection <span>↗</span></a></div>
+<main id="main-content">
+<section class="editorial-hero store-wrap" aria-labelledby="heroTitle">
+<div class="hero-copy"><span class="eyebrow"><span class="little-dot"></span> THE EVERYDAY EDIT · 2026</span><h1 id="heroTitle">Good finds.<br>Great days.<br><em>That's Trendora.</em></h1><p>A fresh perspective on the everyday. Discover pieces you’ll love, at prices you’ll feel good about.</p><a class="solid-link" href="#collection">Shop the collection <span>↗</span></a><div class="hero-note"><span>01 /</span> Less searching. More discovering.</div></div>
+<div class="hero-photo hero-awaiting"><div class="hero-wordmark" aria-hidden="true">t.</div><img id="heroProductImage" hidden fetchpriority="high" alt=""><div class="photo-label"><span>YOUR NEXT FAVOURITE AWAITS</span><strong>Everyday, elevated.</strong></div><a href="#collection" class="photo-arrow" aria-label="Explore products">↗</a></div></section>
+<div class="service-strip store-wrap"><div><span class="service-icon">◇</span><span><b>Considered essentials</b><small>Discover something that fits your day</small></span></div><div><span class="service-icon">▣</span><span><b>Your choice, your checkout</b><small>Online payment or cash on delivery</small></span></div><div><span class="service-icon">↗</span><span><b>Stay in the know</b><small>Follow every order from your account</small></span></div></div>
+<section class="collection-section store-wrap" id="collection"><div class="collection-heading"><div><span class="eyebrow">THE GOOD STUFF, ALL IN ONE PLACE</span><h2>Find your next favourite.</h2></div><span id="sectionCount" class="collection-count" aria-live="polite">Discover the collection</span></div>
+<div class="collection-controls"><div id="categoryTabs" class="category-tabs" aria-label="Product categories"><button class="category-tab" aria-pressed="true">All products</button></div><a class="text-link" href="#edit">The Trendora edit ↗</a></div>
+<div class="shop-toolbar"><div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/></svg><input type="search" id="productSearch" aria-label="Search products" placeholder="Search for your next favourite…"></div><select id="productFilter" aria-label="Filter products"><option value="all">All prices & availability</option><option value="inStock">In stock only</option><option value="under1000">Under ₹1,000</option><option value="1000to5000">₹1,000 – ₹5,000</option><option value="above5000">Above ₹5,000</option></select><select id="productSort" aria-label="Sort products"><option value="latest">Newest first</option><option value="nameAsc">Name: A to Z</option><option value="priceLow">Price: Low to high</option><option value="priceHigh">Price: High to low</option></select><button id="resetFiltersBtn">Reset</button></div>
+<div id="shopCount" class="shop-count" role="status">Loading collection…</div><div id="products" aria-label="Products" aria-busy="true"><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div><div class="skeleton" aria-hidden="true"><div class="sk-media sk-shimmer"></div><div class="sk-body"><div class="sk-line sk-shimmer"></div><div class="sk-line short sk-shimmer"></div></div><div class="sk-actions"><div class="sk-btn sk-shimmer"></div></div></div></div></section>
+<section class="personal-rail store-wrap" id="savedRail" hidden aria-labelledby="savedTitle"><div class="collection-heading"><div><span class="eyebrow">YOUR SHORTLIST</span><h2 id="savedTitle">Saved for later.</h2></div><button class="text-button" id="clearSavedBtn" type="button">Clear saved</button></div><p class="rail-copy">Keep track of pieces you want to come back to.</p><div id="savedProducts" class="product-rail" aria-live="polite"></div></section>
+<section class="personal-rail store-wrap" id="recentRail" hidden aria-labelledby="recentTitle"><div class="collection-heading"><div><span class="eyebrow">PICK UP WHERE YOU LEFT OFF</span><h2 id="recentTitle">Recently viewed.</h2></div></div><div id="recentProducts" class="product-rail" aria-live="polite"></div></section>
+<section class="brand-story store-wrap" id="edit"><div class="story-image"><div class="story-type" aria-hidden="true">Everyday.<br>Extraordinary.</div><img id="storyProductImage" hidden loading="lazy" alt=""></div><div class="story-copy"><span class="eyebrow">THE TRENDORA POINT OF VIEW</span><h2>Not just more.<br>More you.</h2><p>The best finds are the ones that become part of your everyday. Explore the collection and make room for your next favourite.</p><a class="text-link" href="#collection">Discover the edit <span>↗</span></a></div></section>
+<section class="account-banner store-wrap"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2>Your favourites. Your orders. Your space.</h2><p>A simpler shopping experience starts with your Trendora account.</p></div><a class="solid-link" href="signup.html">Create an account ↗</a></section></main>
+<div id="pageLoader" hidden></div><div class="notification" id="notification" role="status" aria-live="polite"></div>
+<div id="ordersModal">
+  <div id="ordersContent">
+    <button class="close-orders">Close</button>
+    <h2>Your Orders</h2>
+    <div id="ordersList">
+      <div class="orders-loading"><div class="mini-spin"></div><span>Loading your orders…</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <div class="auth-card">
+    <div class="auth-head">
+      <button class="auth-close" id="authClose" aria-label="Close">×</button>
+      <h3 id="authTitle">Welcome back</h3>
+      <p id="authSubtitle">Log in to access your profile, orders and cart.</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Log in</button>
+      <button class="auth-tab" data-tab="signup">Sign up</button>
+    </div>
+    <div class="auth-body">
+      <div class="auth-error" id="authError"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm">
+        <div class="auth-field">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" required placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="auth-submit" id="loginSubmit">Log in</button>
+        <div class="auth-alt">New here? <button type="button" data-switch="signup">Create an account</button></div>
+      </form>
+
+      <!-- SIGNUP FORM -->
+      <form id="signupForm" style="display:none;">
+        <div class="auth-field">
+          <label for="signupName">Full name</label>
+          <input type="text" id="signupName" required placeholder="Jane Doe" autocomplete="name" />
+        </div>
+        <div class="auth-field">
+          <label for="signupEmail">Email</label>
+          <input type="email" id="signupEmail" required placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label for="signupPassword">Password</label>
+          <input type="password" id="signupPassword" required minlength="6" placeholder="At least 6 characters" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="auth-submit" id="signupSubmit">Create account</button>
+        <div class="auth-alt">Already have an account? <button type="button" data-switch="login">Log in</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<link rel="stylesheet" href="css/store-polish.css"><script type="module" src="js/store.js"></script></body></html>
