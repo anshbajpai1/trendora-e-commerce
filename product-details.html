@@ -932,8 +932,9 @@ async function loadProductDetails() {
           return;
         }
         existing.quantity += requestedQty;
+        existing.deliveryCharge = Math.max(0, Number(data.deliveryCharge) || 0);
       }
-      else cart.push({ id: productId, name: data.name, price: data.price, quantity: requestedQty, imageUrl: productImages[0], imageUrls: productImages });
+      else cart.push({ id: productId, name: data.name, price: data.price, quantity: requestedQty, imageUrl: productImages[0], imageUrls: productImages, deliveryCharge: Math.max(0, Number(data.deliveryCharge) || 0) });
       localStorage.setItem("cart", JSON.stringify(cart));
       window.TrendoraAuth?.refreshLayout();
       showMessage(`${requestedQty} item${requestedQty === 1 ? "" : "s"} added to your cart!`, "success");

@@ -11,6 +11,8 @@ test('inventory rejects negative, fractional and empty quantities; preserves zer
  assert.throws(()=>validateProduct({...product,returnDays:-1}));
  assert.equal(validateProduct({...product,quantity:0}).quantity,0);
  assert.equal(validateProduct(product).returnDays,7);
+ assert.equal(validateProduct({...product,deliveryCharge:49.5}).deliveryCharge,49.5);
+ assert.throws(()=>validateProduct({...product,deliveryCharge:-1}));
 });
 test('cart recovers from invalid storage and combines duplicate product quantities',()=>{
  assert.deepEqual(normalizeCart('{bad'),[]);assert.deepEqual(normalizeCart('{}'),[]);
@@ -51,6 +53,11 @@ test('failed checkout never creates partial orders or changes stock',async()=>{
  assert.equal(db.data.get('products/a').quantity,1);assert.equal(db.data.size,1);
  await assert.rejects(()=>createOrderWithInventory(db,{...order(),totalAmount:1}));
  assert.equal(db.data.size,1);
+});
+test('checkout includes the current product delivery charge in the verified total',async()=>{
+ const db=database({'products/a':{name:'A',price:100,quantity:2,deliveryCharge:20}});
+ const placed=await createOrderWithInventory(db,{...order('delivery-charge'),totalAmount:120},'');
+ assert.equal(placed.deliveryAmount,20);assert.equal(placed.totalAmount,120);
 });
 test('concurrent checkout cannot oversell the last unit',async()=>{
  const db=database({'products/a':{name:'A',price:100,quantity:1}});

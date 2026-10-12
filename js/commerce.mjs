@@ -6,11 +6,13 @@ export function validateProduct(input) {
   const price = Number(input.price);
   const quantity = Number(input.quantity);
   const returnDays = Number(input.returnDays || 0);
+  const deliveryCharge = Number(input.deliveryCharge || 0);
   if (!name || name.length > 160) throw new Error('Enter a product name of 1–160 characters.');
   if (String(input.price).trim() === '' || !Number.isFinite(price) || price < 0) throw new Error('Enter a valid non-negative price.');
   if (String(input.quantity).trim() === '' || !Number.isSafeInteger(quantity) || quantity < 0) throw new Error('Stock must be a whole number of zero or more.');
   if (!Number.isSafeInteger(returnDays) || returnDays < 0) throw new Error('Return days must be a whole number of zero or more.');
-  return {name,price:Math.round(price*100)/100,quantity,returnDays,description:String(input.description || '').trim(),category:String(input.category || '').trim().slice(0,60),featured:input.featured === true};
+  if (!Number.isFinite(deliveryCharge) || deliveryCharge < 0) throw new Error('Delivery charge must be a valid non-negative amount.');
+  return {name,price:Math.round(price*100)/100,quantity,returnDays,deliveryCharge:Math.round(deliveryCharge*100)/100,description:String(input.description || '').trim(),category:String(input.category || '').trim().slice(0,60),featured:input.featured === true};
 }
 export function normalizeCart(value) {
   let items;

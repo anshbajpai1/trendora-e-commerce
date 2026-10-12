@@ -79,6 +79,10 @@
   .preview-grid { display: none; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; margin-top: 10px; }
   .preview-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #eef0e6; }
   .product-list { display: grid; gap: 12px; }
+  .inventory-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:20px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
+  .inventory-pagination button { border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--primary); padding:8px 11px; font:600 11px inherit; cursor:pointer; }
+  .inventory-pagination button:hover:not(:disabled) { background:#f0f4e8; }
+  .inventory-pagination button:disabled { opacity:.45; cursor:not-allowed; }
   .product-card { display: grid; grid-template-columns: 86px 1fr; gap: 13px; align-items: start; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fff; }
   .product-card img { width: 86px; height: 86px; object-fit: cover; border-radius: 8px; background: #eef0e6; }
   .product-thumb-stack { display: grid; grid-template-columns: repeat(2, 40px); gap: 6px; }
@@ -173,6 +177,10 @@
             <label for="preturnDays">Return Days</label>
             <input type="number" id="preturnDays" placeholder="7" min="0">
           </div>
+          <div class="field">
+            <label for="pdeliveryCharge">Delivery Charge <small>(per unit)</small></label>
+            <input type="number" id="pdeliveryCharge" placeholder="0" min="0" step="0.01">
+          </div>
           <div class="field"><label for="pcategory">Category</label><input id="pcategory" type="text" maxlength="60" placeholder="e.g. Clothing"></div><div class="field feature-field"><label for="pfeatured"><input id="pfeatured" type="checkbox"> Feature on the homepage</label><small>Uses this product’s actual photo.</small></div><div class="field full">
             <label for="pdesc">Description</label>
             <textarea id="pdesc" placeholder="Short product details"></textarea>
@@ -199,7 +207,7 @@
         </div>
       </div>
       <div class="panel-body">
-        <div class="inventory-toolbar"><input id="inventorySearch" type="search" placeholder="Search your catalog…" aria-label="Search inventory"><select id="inventoryFilter" aria-label="Stock filter"><option value="all">All stock</option><option value="available">In stock</option><option value="low">Low stock (1–5)</option><option value="out">Out of stock</option></select></div><p id="inventoryCount" class="inventory-count" role="status">Loading inventory…</p><div id="productList" class="product-list" aria-busy="true"><div class="order-skeleton"><div class="loading-line tall"></div><div class="loading-line"></div></div></div>
+        <div class="inventory-toolbar"><input id="inventorySearch" type="search" placeholder="Search your catalog…" aria-label="Search inventory"><select id="inventoryFilter" aria-label="Stock filter"><option value="all">All stock</option><option value="available">In stock</option><option value="low">Low stock (1–5)</option><option value="out">Out of stock</option></select></div><p id="inventoryCount" class="inventory-count" role="status">Loading inventory…</p><div id="productList" class="product-list" aria-busy="true"><div class="order-skeleton"><div class="loading-line tall"></div><div class="loading-line"></div></div></div><nav id="inventoryPagination" class="inventory-pagination" aria-label="Product list pagination" hidden></nav>
       </div>
     </div>
   </section>

@@ -11,11 +11,12 @@ export async function createOrderWithInventory(db,input,codeId='') {
   for(const item of cart){const ref=doc(db,'products',item.id);const snap=await tx.get(ref);if(!snap.exists())throw new Error(`${item.name} is no longer available.`);const product=snap.data();const price=Number(product.price);const quantity=Number(product.quantity);if(!Number.isFinite(price)||price<0)throw new Error(`${item.name} has an invalid price.`);if(price!==item.price)throw new Error(`${item.name} has a new price. Refresh your bag before ordering.`);if(!Number.isSafeInteger(quantity)||quantity<item.quantity)throw new Error(`${product.name} has only ${Math.max(0,quantity||0)} left.`);products.push({ref,product,item});}
   let coupon=null,couponRef=null,privateCouponRef=null,privateCoupon=null;
   if(codeId){couponRef=doc(db,'discountCodes',codeId);const snap=await tx.get(couponRef);if(!snap.exists())throw new Error('This discount code no longer exists.');coupon=snap.data();if(coupon.userUID){privateCouponRef=doc(db,'users',coupon.userUID,'discounts',codeId);privateCoupon=await tx.get(privateCouponRef);}}
-  const items=products.map(({item,product})=>({...item,name:product.name||item.name,price:Number(product.price),returnDays:Number(product.returnDays||0),imageUrl:product.imageUrl||'',imageUrls:Array.isArray(product.imageUrls)?product.imageUrls:[]}));
+ const items=products.map(({item,product})=>({...item,name:product.name||item.name,price:Number(product.price),deliveryCharge:Math.max(0,Number(product.deliveryCharge)||0),returnDays:Number(product.returnDays||0),imageUrl:product.imageUrl||'',imageUrls:Array.isArray(product.imageUrls)?product.imageUrls:[]}));
   const subtotal=Math.round(items.reduce((sum,item)=>sum+item.price*item.quantity,0)*100)/100;
+ const deliveryAmount=Math.round(items.reduce((sum,item)=>sum+item.deliveryCharge*item.quantity,0)*100)/100;
   const discount=discountFor(coupon,subtotal,input.userUID);
-  if(Math.round((subtotal-discount)*100)!==Math.round(Number(input.totalAmount)*100))throw new Error('Your order total changed. Review the price and discount before trying again.');
-  const order={...input,items,subtotalAmount:subtotal,discountAmount:discount,totalAmount:Math.round((subtotal-discount)*100)/100,discountCode:codeId,discountReserved:!!coupon,timestamp:serverTimestamp()};
+ if(Math.round((subtotal-discount+deliveryAmount)*100)!==Math.round(Number(input.totalAmount)*100))throw new Error('Your order total changed. Review the price, delivery and discount before trying again.');
+ const order={...input,items,subtotalAmount:subtotal,deliveryAmount,discountAmount:discount,totalAmount:Math.round((subtotal-discount+deliveryAmount)*100)/100,discountCode:codeId,discountReserved:!!coupon,timestamp:serverTimestamp()};
   for(const {ref,product,item} of products)tx.update(ref,{quantity:Number(product.quantity)-item.quantity});
   if(coupon){const update={usedCount:Number(coupon.usedCount||0)+1,lastUsedAt:serverTimestamp(),lastOrderId:input.id};tx.update(couponRef,update);if(privateCoupon?.exists())tx.update(privateCouponRef,update);}
   tx.set(adminRef,order);tx.set(userRef,order);

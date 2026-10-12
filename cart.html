@@ -214,8 +214,9 @@ import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
 
   function totals(cart) {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const delivery = cart.reduce((sum, item) => sum + (Number(item.deliveryCharge || 0) * item.quantity), 0);
     const items = cart.reduce((sum, item) => sum + item.quantity, 0);
-    return { subtotal, items };
+    return { subtotal, delivery, items };
   }
 
   function renderEmpty() {
@@ -239,7 +240,7 @@ import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
       return;
     }
 
-    const { subtotal, items } = totals(cart);
+    const { subtotal, delivery, items } = totals(cart);
     cartSubtitle.textContent = `${items} item${items === 1 ? "" : "s"} ready for checkout.`;
     cartContent.innerHTML = `
       <div class="cart-layout">
@@ -256,7 +257,7 @@ import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
                 </div>
                 <div class="item-info">
                   <h2>${escapeHTML(item.name)}</h2>
-                  <p class="item-meta">${formatCurrency(item.price)} each</p>
+                  <p class="item-meta">${formatCurrency(item.price)} each · Delivery ${formatCurrency(item.deliveryCharge || 0)} per unit</p>
                   <div class="item-actions">
                     <div class="qty-control" aria-label="Quantity controls">
                       <button type="button" data-action="decrease" aria-label="Decrease quantity">-</button>
@@ -280,8 +281,8 @@ import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
           <h2>Order Summary</h2>
           <div class="summary-lines">
             <div><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
-            <div><span>Delivery</span><strong>Calculated next</strong></div>
-            <div class="grand-total"><span>Total</span><strong>${formatCurrency(subtotal)}</strong></div>
+            <div><span>Delivery</span><strong>${formatCurrency(delivery)}</strong></div>
+            <div class="grand-total"><span>Total</span><strong>${formatCurrency(subtotal + delivery)}</strong></div>
           </div>
           <p class="summary-note">Discounts, saved addresses, and payment method are handled on the checkout page.</p>
           <button class="checkout-btn" type="button" id="checkoutBtn">Proceed to Checkout</button>

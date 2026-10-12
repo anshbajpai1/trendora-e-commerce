@@ -4,8 +4,9 @@ import {collection,onSnapshot,collectionGroup,doc,addDoc,updateDoc,deleteDoc,ser
 import {escapeHTML,validateProduct} from './commerce.mjs';
 const $=id=>document.getElementById(id);
 const money=new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
-let products=[],editingId=null,previewURLs=[],unsubscribers=[];
-const fields={name:$('pname'),price:$('pprice'),quantity:$('pquantity'),returnDays:$('preturnDays'),description:$('pdesc'),category:$('pcategory'),featured:$('pfeatured')};
+let products=[],editingId=null,previewURLs=[],unsubscribers=[],inventoryPage=1;
+const INVENTORY_PAGE_SIZE=8;
+const fields={name:$('pname'),price:$('pprice'),quantity:$('pquantity'),returnDays:$('preturnDays'),deliveryCharge:$('pdeliveryCharge'),description:$('pdesc'),category:$('pcategory'),featured:$('pfeatured')};
 const imagesFor=p=>Array.isArray(p.imageUrls)&&p.imageUrls.filter(Boolean).length?p.imageUrls.filter(Boolean):p.imageUrl?[p.imageUrl]:[];
 function message(text,error=false){$('productFormMessage').textContent=text;$('productFormMessage').classList.toggle('error',error);}
 async function confirmProductDelete(productName){
@@ -21,12 +22,21 @@ function deleteErrorMessage(error){
 function preview(urls){previewURLs.forEach(URL.revokeObjectURL);previewURLs=[];$('preview').replaceChildren();for(const url of urls){const img=document.createElement('img');img.src=url;img.alt='Selected product photo';$('preview').appendChild(img);}$('preview').style.display=urls.length?'grid':'none';}
 function reset(){editingId=null;Object.values(fields).forEach(f=>f.type==='checkbox'?f.checked=false:f.value='');$('pimage').value='';preview([]);$('formTitle').textContent='Add product';$('addBtn').textContent='Add product';$('cancelEditBtn').hidden=true;}
 function edit(product){editingId=product.id;for(const [key,field] of Object.entries(fields)){if(field.type==='checkbox')field.checked=product[key]===true;else field.value=product[key]??'';}$('pimage').value='';preview(imagesFor(product));$('formTitle').textContent='Edit product';$('addBtn').textContent='Save changes';$('cancelEditBtn').hidden=false;message('Editing '+product.name+'. Existing photos stay unless you choose new ones.');fields.name.scrollIntoView({behavior:'smooth',block:'center'});fields.name.focus();}
+function renderPagination(totalPages,totalItems){
+ const host=$('inventoryPagination');
+ host.hidden=totalPages<=1;
+ if(totalPages<=1){host.innerHTML='';return;}
+ host.innerHTML=`<button type="button" data-page="prev" ${inventoryPage===1?'disabled':''}>← Previous</button><span>Page ${inventoryPage} of ${totalPages} · ${totalItems} products</span><button type="button" data-page="next" ${inventoryPage===totalPages?'disabled':''}>Next →</button>`;
+ host.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{inventoryPage+=button.dataset.page==='next'?1:-1;render();host.scrollIntoView({block:'nearest'});});
+}
 function render(){
  const q=$('inventorySearch').value.trim().toLowerCase(),filter=$('inventoryFilter').value;
  const list=products.filter(p=>(p.name+' '+(p.category||'')).toLowerCase().includes(q)).filter(p=>filter==='all'||(filter==='available'&&p.quantity>0)||(filter==='low'&&p.quantity>0&&p.quantity<=5)||(filter==='out'&&!(p.quantity>0)));
- $('inventoryCount').textContent=`${list.length} of ${products.length} products`;$('productCount').textContent=products.length;$('productList').setAttribute('aria-busy','false');
+ const totalPages=Math.max(1,Math.ceil(list.length/INVENTORY_PAGE_SIZE));inventoryPage=Math.min(inventoryPage,totalPages);
+ const start=(inventoryPage-1)*INVENTORY_PAGE_SIZE,pageItems=list.slice(start,start+INVENTORY_PAGE_SIZE);
+ $('inventoryCount').textContent=list.length?`Showing ${start+1}–${Math.min(start+INVENTORY_PAGE_SIZE,list.length)} of ${list.length} products`:'No products match your filters.';$('productCount').textContent=products.length;$('productList').setAttribute('aria-busy','false');
  $('productList').innerHTML=list.length?'':'<div class="empty">No products match your filters.</div>';
- for(const p of list){const row=document.createElement('article');row.className='product-card inventory-row';const image=imagesFor(p)[0];row.innerHTML=`<div class="inventory-photo">${image?`<img src="${escapeHTML(image)}" alt="${escapeHTML(p.name)}">`:'<span>No photo</span>'}</div><div class="inventory-info"><span class="inventory-category">${escapeHTML(p.category||'Uncategorized')}${p.featured?' · Featured':''}</span><h3>${escapeHTML(p.name||'Untitled product')}</h3><p>${money.format(Number(p.price||0))} <span class="stock-pill ${Number(p.quantity)<=5?'low':''}">${Number(p.quantity||0)} in stock</span></p><p class="inventory-description">${escapeHTML(p.description||'No description added.')}</p><div class="actions"><button class="btn secondary editBtn" type="button">Edit product</button><a class="catalog-preview" href="product-details.html?id=${encodeURIComponent(p.id)}">View in store ↗</a><button class="deleteBtn" type="button" aria-label="Delete ${escapeHTML(p.name)}">Delete</button></div></div>`;
+ for(const p of pageItems){const row=document.createElement('article');row.className='product-card inventory-row';const image=imagesFor(p)[0],delivery=Number(p.deliveryCharge||0);row.innerHTML=`<div class="inventory-photo">${image?`<img src="${escapeHTML(image)}" alt="${escapeHTML(p.name)}">`:'<span>No photo</span>'}</div><div class="inventory-info"><span class="inventory-category">${escapeHTML(p.category||'Uncategorized')}${p.featured?' · Featured':''}</span><h3>${escapeHTML(p.name||'Untitled product')}</h3><p>${money.format(Number(p.price||0))} <span class="stock-pill ${Number(p.quantity)<=5?'low':''}">${Number(p.quantity||0)} in stock</span></p><p class="inventory-description">Delivery: ${money.format(delivery)} per unit · ${escapeHTML(p.description||'No description added.')}</p><div class="actions"><button class="btn secondary editBtn" type="button">Edit product</button><a class="catalog-preview" href="product-details.html?id=${encodeURIComponent(p.id)}">View in store ↗</a><button class="deleteBtn" type="button" aria-label="Delete ${escapeHTML(p.name)}">Delete</button></div></div>`;
  row.querySelector('.editBtn').onclick=()=>edit(p);
  row.querySelector('.deleteBtn').onclick=async event=>{
   const btn=event.currentTarget;
@@ -47,8 +57,9 @@ function render(){
  };
  $('productList').appendChild(row);
  }
+ renderPagination(totalPages,list.length);
 }
-$('inventorySearch').addEventListener('input',render);$('inventoryFilter').addEventListener('change',render);$('cancelEditBtn').onclick=()=>{reset();message('Edit cancelled.');};
+$('inventorySearch').addEventListener('input',()=>{inventoryPage=1;render();});$('inventoryFilter').addEventListener('change',()=>{inventoryPage=1;render();});$('cancelEditBtn').onclick=()=>{reset();message('Edit cancelled.');};
 $('pimage').addEventListener('change',()=>{preview([]);const files=[...$('pimage').files];if(files.length>6||files.some(f=>!f.type.startsWith('image/')||f.size>8*1024*1024)){message('Choose up to 6 images, no larger than 8 MB each.',true);$('pimage').value='';return;}const urls=files.map(URL.createObjectURL);preview(urls);previewURLs=urls;});
 $('addBtn').addEventListener('click',async()=>{
  if($('addBtn').disabled)return;

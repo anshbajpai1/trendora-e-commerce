@@ -240,7 +240,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
   });
 
   // CART
-  function addItemToCart(id,name,price,imageUrl,imageUrls=[],stock=Infinity){
+  function addItemToCart(id,name,price,imageUrl,imageUrls=[],stock=Infinity,deliveryCharge=0){
     if(!currentUser){
       openAuthModal({mode:"login"});
       return;
@@ -258,8 +258,9 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
         return;
       }
       exist.quantity = (exist.quantity||1)+1;
+      exist.deliveryCharge = Math.max(0, Number(deliveryCharge) || 0);
     }
-    else cart.push({id,name,price,quantity:1,imageUrl,imageUrls});
+    else cart.push({id,name,price,quantity:1,imageUrl,imageUrls,deliveryCharge:Math.max(0,Number(deliveryCharge)||0)});
     localStorage.setItem("cart",JSON.stringify(cart));
     updateCartCount();
     showNotification(`"${name}" added to cart`);
@@ -386,7 +387,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
         img.addEventListener("load", () => img.classList.add("loaded"), {once:true});
       });
       productsDiv.appendChild(div);
-      div.querySelector(".addCartBtn").onclick=()=>addItemToCart(data.id,data.name,data.price,primaryImage,images,stock);
+      div.querySelector(".addCartBtn").onclick=()=>addItemToCart(data.id,data.name,data.price,primaryImage,images,stock,data.deliveryCharge);
       div.querySelector(".save-product").onclick=()=>toggleSaved(data);
     });
     renderPersonalRails();

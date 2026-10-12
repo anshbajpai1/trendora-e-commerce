@@ -21,6 +21,7 @@
   .summary-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .summary-item img { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; background: #eef0e6; flex: 0 0 auto; }
   .summary-item span { overflow-wrap: anywhere; }
+  .delivery-line { display:block; margin-top:3px; color:#7e896e; font-size:11px; }
   label { font-weight: 700; margin-top: 12px; display: block; color: #515c43; font-size: 13px; }
   input, textarea, select { display: block; width: 100%; margin: 9px 0 12px; padding: 12px; border: 1px solid #e0e3d7; border-radius: 8px; font-size: 15px; outline: none; }
   input:focus, textarea:focus, select:focus { border-color: #455336; box-shadow: 0 0 0 3px rgba(36,87,214,0.12); }
@@ -170,6 +171,7 @@ let cart = normalizeCart(localStorage.getItem("cart") || "[]");
 let checkoutInProgress = false;
 let appliedDiscount = null;
 let subtotal = 0;
+let deliveryAmount = 0;
 let discountAmount = 0;
 let finalTotal = 0;
 let savedAddresses = [];
@@ -284,11 +286,12 @@ function calculateDiscount(code, amount) {
 
 function recalculateTotals() {
   discountAmount = appliedDiscount ? calculateDiscount(appliedDiscount, subtotal) : 0;
-  finalTotal = Math.max(subtotal - discountAmount, 0);
+  finalTotal = Math.max(subtotal - discountAmount + deliveryAmount, 0);
   document.getElementById("total").innerHTML = `
     <div class="total-breakdown">
       <div><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
       <div><span>Discount</span><strong>${discountAmount ? "- " + formatCurrency(discountAmount) : formatCurrency(0)}</strong></div>
+      <div><span>Delivery</span><strong>${formatCurrency(deliveryAmount)}</strong></div>
       <div class="payable"><span>Payable</span><strong>${formatCurrency(finalTotal)}</strong></div>
     </div>
   `;
@@ -303,15 +306,18 @@ function loadCart() {
     return;
   }
   subtotal = 0;
+  deliveryAmount = 0;
   cart.forEach(item => {
     const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
+    const itemDelivery = Number(item.deliveryCharge || 0) * Number(item.quantity || 1);
     subtotal += itemTotal;
+    deliveryAmount += itemDelivery;
     const div = document.createElement("div");
     div.className = "cart-item";
     div.innerHTML = `
       <div class="summary-item">
         <img src="${escapeHTML(getCartImage(item))}" alt="${escapeHTML(item.name)}">
-        <span>${escapeHTML(item.name)} (x${item.quantity})</span>
+        <span>${escapeHTML(item.name)} (x${item.quantity})<small class="delivery-line">Delivery: ${formatCurrency(itemDelivery)}</small></span>
       </div>
       <strong>${formatCurrency(itemTotal)}</strong>
     `;
@@ -421,6 +427,7 @@ function emailOrderPayload(order) {
     address: order.address,
     items: order.items || [],
     subtotalAmount: order.subtotalAmount,
+    deliveryAmount: order.deliveryAmount,
     discountCode: order.discountCode,
     discountAmount: order.discountAmount,
     totalAmount: order.totalAmount,
@@ -463,6 +470,7 @@ async function placeOrder() {
   const address = document.getElementById("custAddress").value.trim();
   const paymentMethod = document.getElementById("paymentMethod").value;
   subtotal = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+  deliveryAmount = cart.reduce((sum, item) => sum + (Number(item.deliveryCharge || 0) * Number(item.quantity || 1)), 0);
   recalculateTotals();
 
   if (!cart.length) {
@@ -487,8 +495,8 @@ async function placeOrder() {
   try {
     if(paymentMethod === "Online" && typeof Razorpay !== "function") throw new Error("Online payment could not load. Check your connection or choose cash on delivery.");
     // Refresh stale cart prices before committing; customer reviews any changed total.
-    const latestItems=await Promise.all(cart.map(async item=>{const snap=await getDoc(doc(db,"products",item.id));if(!snap.exists())throw new Error(`${item.name} is no longer available.`);return {...item,price:Number(snap.data().price),name:snap.data().name||item.name};}));
-    if(latestItems.some((item,i)=>item.price!==cart[i].price)){cart=latestItems;localStorage.setItem("cart",JSON.stringify(cart));loadCart();throw new Error("A product price changed. Your total has been updated. Please review and place your order again.");}
+    const latestItems=await Promise.all(cart.map(async item=>{const snap=await getDoc(doc(db,"products",item.id));if(!snap.exists())throw new Error(`${item.name} is no longer available.`);return {...item,price:Number(snap.data().price),name:snap.data().name||item.name,deliveryCharge:Math.max(0,Number(snap.data().deliveryCharge)||0)};}));
+    if(latestItems.some((item,i)=>item.price!==cart[i].price||item.deliveryCharge!==Number(cart[i].deliveryCharge||0))){cart=latestItems;localStorage.setItem("cart",JSON.stringify(cart));loadCart();throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again.");}
     const adminUID = "REPLACE_WITH_ADMIN_UID";
     const { orderId, orderRef } = await createNumericOrderRef(adminUID);
     const placedAt = new Date();
@@ -502,6 +510,7 @@ async function placeOrder() {
       address,
       items: cart,
       subtotalAmount: subtotal,
+      deliveryAmount,
       discountCode: appliedDiscount?.code || "",
       discountType: appliedDiscount?.type || "",
       discountValue: appliedDiscount?.amount || 0,
