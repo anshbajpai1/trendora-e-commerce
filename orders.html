@@ -418,7 +418,7 @@
         <h3><i class="fa-solid fa-box-open"></i> Order Details</h3>
         <small id="mOrderId">—</small>
       </div>
-      <button class="modal-close" id="closeModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      <button class="modal-close" id="closeModal" type="button" aria-label="Close order details"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-foot" id="modalFoot"></div>
@@ -472,6 +472,7 @@ const modal               = document.getElementById("orderModal");
 const modalBody           = document.getElementById("modalBody");
 const modalFoot           = document.getElementById("modalFoot");
 const mOrderId            = document.getElementById("mOrderId");
+const closeModalButton    = document.getElementById("closeModal");
 
 let allOrders = [];
 let activeUser = null;
@@ -773,28 +774,34 @@ function openModal(id){
   };
   document.getElementById("mInvoice")?.addEventListener("click",()=>downloadInvoice(activeUser.uid,o.id));
   document.getElementById("mReturn") ?.addEventListener("click",()=>requestReturn(o));
-  document.getElementById("mCancel") ?.addEventListener("click",()=>cancelOrder(o));
+  document.getElementById("mCancel") ?.addEventListener("click",event=>cancelOrder(o,event.currentTarget));
 
   modal.classList.add("open");
   document.body.style.overflow="hidden";
 }
 function closeModal(){modal.classList.remove("open");document.body.style.overflow="";}
-document.getElementById("closeModal").onclick=closeModal;
+closeModalButton.addEventListener("click",event=>{event.preventDefault();closeModal();});
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
 
 /* ============ ACTIONS ============ */
-async function cancelOrder(order){
-  if (!await window.trendoraDialog.confirm("Are you sure you want to cancel this order?")) return;
+async function confirmOrderAction(message){
+  if(typeof window.trendoraDialog?.confirm==="function")return window.trendoraDialog.confirm(message);
+  return window.confirm(message);
+}
+async function cancelOrder(order,button){
+  if (!await confirmOrderAction("Are you sure you want to cancel this order?")) return;
+  const originalLabel=button?.innerHTML;
+  if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Cancelling…';}
   try{
     const updates=await updateOrderAtomic(db,{...order,userUID:activeUser.uid},{orderStatus:"Cancelled by User"},{restore:true,customerCancel:true});
     await sendTrendoraEmail("order-cancelled",activeUser.email,{cancelledBy:"user",order:emailOrderPayload({...order,...updates})});
     alert("Order cancelled successfully.");
     closeModal();
-  }catch(e){console.error(e);alert("Failed to cancel order.");}
+  }catch(e){console.error(e);alert("Failed to cancel order.");if(button){button.disabled=false;button.innerHTML=originalLabel;}}
 }
 async function requestReturn(order){
-  if (!await window.trendoraDialog.confirm("Request a return for this order?")) return;
+  if (!await confirmOrderAction("Request a return for this order?")) return;
   try{
     const updates={returnStatus:"Requested",returnRequestedAt:new Date().toISOString()};
     await updateOrderAtomic(db,{...order,userUID:activeUser.uid},updates);
