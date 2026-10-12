@@ -29,8 +29,9 @@ function render(){
  for(const p of list){const row=document.createElement('article');row.className='product-card inventory-row';const image=imagesFor(p)[0];row.innerHTML=`<div class="inventory-photo">${image?`<img src="${escapeHTML(image)}" alt="${escapeHTML(p.name)}">`:'<span>No photo</span>'}</div><div class="inventory-info"><span class="inventory-category">${escapeHTML(p.category||'Uncategorized')}${p.featured?' · Featured':''}</span><h3>${escapeHTML(p.name||'Untitled product')}</h3><p>${money.format(Number(p.price||0))} <span class="stock-pill ${Number(p.quantity)<=5?'low':''}">${Number(p.quantity||0)} in stock</span></p><p class="inventory-description">${escapeHTML(p.description||'No description added.')}</p><div class="actions"><button class="btn secondary editBtn" type="button">Edit product</button><a class="catalog-preview" href="product-details.html?id=${encodeURIComponent(p.id)}">View in store ↗</a><button class="deleteBtn" type="button" aria-label="Delete ${escapeHTML(p.name)}">Delete</button></div></div>`;
  row.querySelector('.editBtn').onclick=()=>edit(p);
  row.querySelector('.deleteBtn').onclick=async event=>{
+  const btn=event.currentTarget;
   if(!await confirmProductDelete(p.name||'this product'))return;
-  const btn=event.currentTarget, originalLabel=btn.textContent;
+  const originalLabel=btn.textContent;
   btn.disabled=true;btn.textContent='Deleting…';
   try{
    await deleteDoc(doc(db,'products',p.id));
