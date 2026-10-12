@@ -459,10 +459,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Customer Reviews
     </h2>
+    <p class="reviews-intro">Feedback from customers who have purchased this product.</p>
     <div id="reviewsList"></div>
 
-    <h3>Write a Review</h3>
-    <form id="reviewForm" class="review-form">
+    <div class="review-composer">
+    <h3>Share your experience</h3>
+    <div id="reviewGate" class="review-gate" role="status" aria-live="polite">Checking whether this purchase is eligible for a review…</div>
+    <form id="reviewForm" class="review-form" hidden>
       <label class="field-label" for="reviewName">Name</label>
       <input type="text" id="reviewName" placeholder="Your Name" readonly>
 
@@ -471,7 +474,8 @@
       <input type="number" id="reviewRating" class="visually-hidden" min="1" max="5" required tabindex="-1" aria-hidden="true">
 
       <label class="field-label" for="reviewComment">Your Review</label>
-      <textarea id="reviewComment" placeholder="Share your experience with this product" rows="3" required></textarea>
+      <textarea id="reviewComment" placeholder="What did you like? How was the quality, fit, or delivery?" rows="3" maxlength="1000" aria-describedby="reviewHelp" required></textarea>
+      <span class="review-help" id="reviewHelp">Please keep your review helpful and specific.</span>
 
       <label class="field-label">Add Photos <span style="font-weight:500;color:var(--c-400)">(optional)</span></label>
       <div class="upload-row">
@@ -489,6 +493,7 @@
         Submit Review
       </button>
     </form>
+    </div>
   </section>
 </div>
 
@@ -516,7 +521,7 @@
 
 <script type="module">
 import { normalizeCart, fetchProduct, readCachedProducts } from "./js/commerce.mjs";
-let db, auth, doc, getDoc, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, updateDoc;
+let db, auth, doc, getDoc, getDocs, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, updateDoc;
 
 const firebaseConfig = {
   apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
@@ -535,7 +540,7 @@ const firebaseReady = Promise.all([
   const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
   db = dbMod.getFirestore(app);
   auth = authMod.getAuth(app);
-  ({ doc, getDoc, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, updateDoc } = dbMod);
+  ({ doc, getDoc, getDocs, collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, updateDoc } = dbMod);
   authMod.onAuthStateChanged(auth, handleAuthChange);
   return true;
 }).catch(error => { console.warn("Review services unavailable", error); return false; });
@@ -560,7 +565,11 @@ let profileName = "Guest";
 let productImages = [];
 let selectedReviewImages = [];   // compressed data URLs for the new review
 let availableStock = 0;
+let reviewAccessRequest = 0;
+let canReviewProduct = false;
+let hasOwnReview = false;
 const productQty = document.getElementById("productQty");
+const reviewGate = document.getElementById("reviewGate");
 
 function setProductQty(next){
   const limit = Math.max(1, availableStock || 1);
@@ -797,19 +806,11 @@ async function handleAuthChange(user) {
   currentUserUid = user?.uid || null;
   if (!user) {
     reviewName.value = "Login required";
-    reviewForm.querySelectorAll("input, textarea, button").forEach(el => {
-      if (el.id !== "reviewName") el.disabled = true;
-    });
-    starInputEl.querySelectorAll("button").forEach(b => b.disabled = true);
-    uploadTrigger.disabled = true;
+    setReviewAccess("signin");
     return;
   }
   currentUserUid = user.uid;
-  reviewForm.querySelectorAll("input, textarea, button").forEach(el => {
-    el.disabled = false;
-  });
-  starInputEl.querySelectorAll("button").forEach(b => b.disabled = false);
-  uploadTrigger.disabled = false;
+  setReviewAccess("checking");
 
   // Fetch profile name from Firestore
   try {
@@ -827,6 +828,52 @@ async function handleAuthChange(user) {
     reviewName.value = profileName;
   }
 
+  await verifyReviewPurchase(user.uid);
+}
+
+function setReviewAccess(state) {
+  const states = {
+    checking: "Checking your purchase history…",
+    signin: "Sign in to verify your purchase before writing a review.",
+    ineligible: "Only customers who purchased this product can write a review.",
+    duplicate: "You have already reviewed this product. You can edit or delete your review in the list.",
+    eligible: "Verified purchase — your review will help other customers."
+  };
+  reviewGate.textContent = states[state] || states.checking;
+  reviewGate.className = `review-gate ${state}`;
+  const enabled = state === "eligible";
+  reviewForm.hidden = !enabled;
+  reviewForm.querySelectorAll("input, textarea, button").forEach(el => {
+    if (el.id !== "reviewName") el.disabled = !enabled;
+  });
+  starInputEl.querySelectorAll("button").forEach(button => button.disabled = !enabled);
+  uploadTrigger.disabled = !enabled;
+}
+
+function orderContainsProduct(order) {
+  if (["Cancelled", "Cancelled by User", "Payment Failed"].includes(order.orderStatus) || order.paymentStatus === "Failed") return false;
+  return Array.isArray(order.items) && order.items.some(item => String(item?.id || "") === String(productId));
+}
+
+async function verifyReviewPurchase(uid) {
+  const request = ++reviewAccessRequest;
+  canReviewProduct = false;
+  hasOwnReview = false;
+  if (!uid || !productId || !db) { setReviewAccess(uid ? "ineligible" : "signin"); return; }
+  setReviewAccess("checking");
+  try {
+    const [ordersSnap, reviewsSnap] = await Promise.all([
+      getDocs(collection(db, "users", uid, "orders")),
+      getDocs(query(collection(db, "products", productId, "reviews"), where("uid", "==", uid)))
+    ]);
+    if (request !== reviewAccessRequest || uid !== currentUserUid) return;
+    hasOwnReview = !reviewsSnap.empty;
+    canReviewProduct = ordersSnap.docs.some(orderSnap => orderContainsProduct(orderSnap.data()));
+    setReviewAccess(hasOwnReview ? "duplicate" : (canReviewProduct ? "eligible" : "ineligible"));
+  } catch (error) {
+    console.warn("Could not verify review eligibility", error);
+    if (request === reviewAccessRequest) setReviewAccess("ineligible");
+  }
 }
 
 function hidePageLoader(){ pageLoader.classList.add("hide"); document.querySelector(".product-card")?.classList.remove("detail-loading"); document.querySelector(".product-card")?.setAttribute("aria-busy", "false"); }
@@ -925,8 +972,14 @@ function updateRatingSummary(ratings) {
 function reviewPhotosMarkup(images){
   if (!Array.isArray(images) || !images.length) return "";
   return `<div class="review-photos">` + images.map((url, i) =>
-    `<button type="button" class="rev-photo" data-review-photo="${i}" aria-label="View review photo ${i + 1}"><img src="${url}" alt="Review photo ${i + 1}"></button>`
+    `<button type="button" class="rev-photo" data-review-photo="${i}" aria-label="View review photo ${i + 1}"><img src="${escapeHTML(url)}" alt="Review photo ${i + 1}"></button>`
   ).join("") + `</div>`;
+}
+
+function escapeHTML(value) { return String(value ?? "").replace(/[&<>"']/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char])); }
+function reviewDate(value) {
+  const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
+  return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric" }).format(date) : "Verified customer";
 }
 
 let reviewsUnsubscribe = null;
@@ -948,7 +1001,7 @@ async function loadReviews() {
     snap.forEach(docSnap => {
       const data = docSnap.data();
       ratings.push(Number(data.rating) || 0);
-      const initial = (data.name || "?").trim().charAt(0) || "?";
+      const initial = escapeHTML((data.name || "?").trim().charAt(0) || "?");
       const images = Array.isArray(data.images) ? data.images : [];
       const div = document.createElement("div");
       div.className = "review-card";
@@ -956,11 +1009,12 @@ async function loadReviews() {
         <div class="review-head">
           <span class="review-avatar" aria-hidden="true">${initial}</span>
           <span>
-            <b>${data.name}</b>
+            <b>${escapeHTML(data.name || "Customer")}</b>
             ${starsMarkup(data.rating, "review-stars")}
+            <span class="review-meta">${data.verifiedPurchase === true ? '<span class="verified-badge">Verified purchase</span>' : ''}<time>${reviewDate(data.timestamp)}</time></span>
           </span>
         </div>
-        <span class="comment-text">${data.comment}</span>
+        <span class="comment-text">${escapeHTML(data.comment)}</span>
         ${reviewPhotosMarkup(images)}`;
 
       // review photo lightbox
@@ -991,6 +1045,7 @@ async function loadReviews() {
       reviewsList.appendChild(div);
     });
     updateRatingSummary(ratings);
+    if (currentUserUid && hasOwnReview !== snap.docs.some(review => review.data().uid === currentUserUid)) verifyReviewPurchase(currentUserUid);
   }, error => {
     console.warn("Reviews could not load", error);
     reviewsList.textContent = "Reviews are temporarily unavailable.";
@@ -1004,15 +1059,23 @@ reviewForm.onsubmit = async e => {
     return;
   }
   if (!productId) return;
+  if (!canReviewProduct || hasOwnReview) {
+    showMessage("Only one review is allowed after a verified purchase.", "info");
+    verifyReviewPurchase(currentUserUid);
+    return;
+  }
   if (!reviewRating.value) { showMessage("Please select a star rating.", "error"); return; }
+  const comment = reviewComment.value.trim();
+  if (comment.length < 10) { showMessage("Please write at least 10 characters about your experience.", "error"); return; }
   setBtnLoading(submitReviewBtn, true, "Submitting…");
   try {
     await addDoc(collection(db, "products", productId, "reviews"), {
       name: profileName,
       uid: currentUserUid,
       rating: parseInt(reviewRating.value),
-      comment: reviewComment.value,
+      comment,
       images: selectedReviewImages.slice(),
+      verifiedPurchase: true,
       timestamp: new Date()
     });
     reviewForm.reset();
@@ -1021,6 +1084,8 @@ reviewForm.onsubmit = async e => {
     selectedReviewImages = [];
     renderPhotoPreviews();
     uploadHint.textContent = `Up to ${MAX_PHOTOS} images`;
+    hasOwnReview = true;
+    setReviewAccess("duplicate");
     setBtnLoading(submitReviewBtn, false);
     showMessage("Review submitted!", "success");
   } catch (err) { console.error(err); setBtnLoading(submitReviewBtn, false); showMessage("Failed to submit review.", "error"); }
