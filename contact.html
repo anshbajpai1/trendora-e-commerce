@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Contact Trendora for help with an order, product or your account.">
+  <title>Contact — Trendora</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="css/about-contact.css">
+  <script src="js/main.js" defer></script>
+  <script src="js/contact.js" defer></script>
+</head>
+<body class="store-page contact-page">
+  <main>
+    <section class="contact-hero"><p class="page-kicker">CONTACT TRENDORA</p><h1>How can we<br><em>help?</em></h1><p>Have a question about an order, a product or your account? Send us a note and we’ll point you in the right direction.</p></section>
+    <section class="contact-layout">
+      <aside class="contact-aside"><h2>Start here.</h2><a href="track-order.html"><span>↗</span><div><strong>Track an order</strong><small>Check the latest status of your delivery.</small></div></a><a href="returns.html"><span>↗</span><div><strong>Returns &amp; refunds</strong><small>Read our return and refund guidance.</small></div></a><a href="profile.html"><span>↗</span><div><strong>Account help</strong><small>Manage your account details and orders.</small></div></a></aside>
+      <section class="contact-form-panel" aria-labelledby="contactFormTitle"><p class="page-kicker">SEND A MESSAGE</p><h2 id="contactFormTitle">We’re listening.</h2><form id="contactForm"><div class="contact-fields"><label>Your name<input name="name" autocomplete="name" required placeholder="Your full name"></label><label>Email address<input type="email" name="email" autocomplete="email" required placeholder="you@example.com"></label></div><label>What can we help with?<select name="topic" required><option value="">Choose a topic</option><option>Order support</option><option>Product question</option><option>Returns &amp; refunds</option><option>Account help</option><option>Something else</option></select></label><label>Message<textarea name="message" required rows="5" placeholder="Tell us a little more…"></textarea></label><button class="solid-link" type="submit">Send message <span>↗</span></button><p id="contactStatus" class="contact-status" role="status" aria-live="polite"></p></form></section>
+    </section>
+  </main>
+</body>
+</html>

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -10,6 +11,66 @@ const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+
+// Email endpoints are a common abuse target. This lightweight limiter is deliberately
+// dependency-free so it also works in the current deployment. Use a shared store
+// (Redis, etc.) if the backend is later scaled across multiple processes.
+const requestWindows = new Map();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 8;
+
+function clientKey(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  return (Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+}
+
+function notificationRateLimit(req, res, next) {
+  const now = Date.now();
+  const key = clientKey(req);
+  const record = requestWindows.get(key);
+  if (!record || now >= record.resetAt) {
+    requestWindows.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    res.set("Retry-After", String(Math.ceil((record.resetAt - now) / 1000)));
+    return res.status(429).json({ success: false, message: "Too many email requests. Please try again later." });
+  }
+  record.count += 1;
+  return next();
+}
+
+const paymentWindows = new Map();
+const PAYMENT_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const PAYMENT_LIMIT_MAX_REQUESTS = 12;
+const pendingRazorpayOrders = new Map();
+
+function paymentRateLimit(req, res, next) {
+  const now = Date.now();
+  const key = clientKey(req);
+  const record = paymentWindows.get(key);
+  if (!record || now >= record.resetAt) {
+    paymentWindows.set(key, { count: 1, resetAt: now + PAYMENT_LIMIT_WINDOW_MS });
+    return next();
+  }
+  if (record.count >= PAYMENT_LIMIT_MAX_REQUESTS) {
+    res.set("Retry-After", String(Math.ceil((record.resetAt - now) / 1000)));
+    return res.status(429).json({ success: false, message: "Too many payment attempts. Please wait before trying again." });
+  }
+  record.count += 1;
+  return next();
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of requestWindows) if (now >= record.resetAt) requestWindows.delete(key);
+}, RATE_LIMIT_WINDOW_MS).unref();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of paymentWindows) if (now >= record.resetAt) paymentWindows.delete(key);
+  for (const [orderId, order] of pendingRazorpayOrders) if (now >= order.expiresAt) pendingRazorpayOrders.delete(orderId);
+}, PAYMENT_LIMIT_WINDOW_MS).unref();
 
 const money = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -20,6 +81,30 @@ function requiredEnv(name) {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is missing in trendora-backend/.env`);
   return value;
+}
+
+function razorpayCredentials() {
+  return {
+    keyId: requiredEnv("RAZORPAY_KEY_ID"),
+    keySecret: requiredEnv("RAZORPAY_KEY_SECRET")
+  };
+}
+
+async function createRazorpayOrder({ amount, receipt, notes }) {
+  const { keyId, keySecret } = razorpayCredentials();
+  const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+  const response = await fetch("https://api.razorpay.com/v1/orders", {
+    method: "POST",
+    headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, currency: "INR", receipt, notes })
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || !body.id) throw new Error(body.error?.description || "Razorpay could not create a payment order.");
+  return { order: body, keyId };
+}
+
+function validPaymentAmount(value) {
+  return Number.isSafeInteger(value) && value >= 100 && value <= 10_000_000;
 }
 
 function createTransporter() {
@@ -154,6 +239,8 @@ function buildMessage(type, payload) {
 
 async function sendTrendoraEmail({ to, type, payload }) {
   if (!to || !type) throw new Error("Missing recipient or email type");
+  if (!/^\S+@\S+\.\S+$/.test(String(to)) || String(to).length > 254) throw new Error("A valid recipient email is required");
+  if (!['order-confirmation', 'order-cancelled', 'discount-code'].includes(type)) throw new Error("Unsupported email type");
   const { subject, html } = buildMessage(type, payload || {});
   const transporter = createTransporter();
 
@@ -169,17 +256,17 @@ app.get("/health", (req, res) => {
   res.json({ success: true, message: "Trendora email backend is running" });
 });
 
-app.post("/send-notification", async (req, res) => {
+app.post("/send-notification", notificationRateLimit, async (req, res) => {
   try {
     const info = await sendTrendoraEmail(req.body);
     res.json({ success: true, message: "Email sent successfully", id: info.messageId });
   } catch (error) {
     console.error("Email error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(/required|unsupported|valid/i.test(error.message) ? 400 : 500).json({ success: false, message: error.message });
   }
 });
 
-app.post("/send-email", async (req, res) => {
+app.post("/send-email", notificationRateLimit, async (req, res) => {
   try {
     const { email, orderId, name } = req.body;
     const payload = {
@@ -191,7 +278,44 @@ app.post("/send-email", async (req, res) => {
     res.json({ success: true, message: "Email sent successfully", id: info.messageId });
   } catch (error) {
     console.error("Email error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(/required|unsupported|valid/i.test(error.message) ? 400 : 500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/payments/razorpay/order", paymentRateLimit, async (req, res) => {
+  try {
+    const amount = Number(req.body?.amount);
+    const receipt = String(req.body?.receipt || "");
+    const notes = req.body?.notes && typeof req.body.notes === "object" ? req.body.notes : {};
+    if (!validPaymentAmount(amount)) throw new Error("The order total is invalid.");
+    if (!/^trendora_[A-Za-z0-9_-]{6,40}$/.test(receipt)) throw new Error("The order reference is invalid.");
+
+    const { order, keyId } = await createRazorpayOrder({ amount, receipt, notes });
+    pendingRazorpayOrders.set(order.id, { amount, receipt, expiresAt: Date.now() + 30 * 60 * 1000 });
+    res.json({ success: true, keyId, orderId: order.id, amount: order.amount, currency: order.currency });
+  } catch (error) {
+    console.error("Razorpay order error:", error.message);
+    res.status(/invalid|reference|missing/i.test(error.message) ? 400 : 502).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/payments/razorpay/verify", paymentRateLimit, (req, res) => {
+  try {
+    const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = req.body || {};
+    if (![orderId, paymentId, signature].every(value => typeof value === "string" && value.length > 0)) throw new Error("Incomplete payment verification data.");
+    if (!pendingRazorpayOrders.has(orderId)) throw new Error("This payment session expired. Please start checkout again.");
+
+    const { keySecret } = razorpayCredentials();
+    const expectedSignature = crypto.createHmac("sha256", keySecret).update(`${orderId}|${paymentId}`).digest("hex");
+    const providedSignature = Buffer.from(signature, "utf8");
+    const expectedBuffer = Buffer.from(expectedSignature, "utf8");
+    if (providedSignature.length !== expectedBuffer.length || !crypto.timingSafeEqual(providedSignature, expectedBuffer)) throw new Error("Payment verification failed.");
+
+    pendingRazorpayOrders.delete(orderId);
+    res.json({ success: true, payment: { orderId, paymentId } });
+  } catch (error) {
+    console.error("Razorpay verification error:", error.message);
+    res.status(/incomplete|expired|failed/i.test(error.message) ? 400 : 500).json({ success: false, message: error.message });
   }
 });
 

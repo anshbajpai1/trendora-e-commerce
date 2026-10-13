@@ -73,7 +73,7 @@
     return `
       <nav class="trendora-navbar" aria-label="Main navigation">
         <a class="trendora-brand" href="index.html" aria-label="Trendora home"><i class="brand-mark" aria-hidden="true">t</i><span>trendora</span></a>
-        <div class="nav-center"><a href="index.html#collection" class="${page === 'index.html' ? 'active' : ''}">Shop all</a><a href="wishlist.html">Saved</a><a href="index.html#edit">The everyday edit</a><a href="track-order.html">Track an order</a></div>
+        <div class="nav-center"><a href="index.html#collection" class="${page === 'index.html' ? 'active' : ''}">Shop all</a><a href="wishlist.html">Saved</a><a href="index.html#edit">The everyday edit</a><a href="about.html" class="${page === 'about.html' ? 'active' : ''}">About us</a><a href="contact.html" class="${page === 'contact.html' ? 'active' : ''}">Contact</a></div>
         <div class="trendora-navlinks">
           <button class="nav-search" id="navSearchToggle" type="button" aria-label="Search products" aria-expanded="false" aria-controls="globalSearchPanel"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m16 16 5 5"/></svg><span>Search</span></button>
           ${navLink("orders.html", "Orders", "js-orders-link")}
@@ -96,6 +96,17 @@
               `}
             </div>
           </div>
+          <button class="nav-menu-toggle" id="mobileNavToggle" type="button" aria-expanded="false" aria-controls="mobileNavPanel">Menu</button>
+        </div>
+        <div class="mobile-nav-panel" id="mobileNavPanel" hidden>
+          <a href="index.html#collection">Shop all</a>
+          <a href="wishlist.html">Saved products</a>
+          <a href="index.html#edit">The everyday edit</a>
+          <a href="about.html">About us</a>
+          <a href="contact.html">Contact</a>
+          <a href="track-order.html">Track an order</a>
+          <a href="orders.html" class="js-orders-link">My orders</a>
+          <a href="profile.html">My account</a>
         </div>
       </nav>
     `;
@@ -191,6 +202,22 @@
       });
     }
 
+    const mobileMenuToggle = document.getElementById("mobileNavToggle");
+    const mobileNavPanel = document.getElementById("mobileNavPanel");
+    if (mobileMenuToggle && mobileNavPanel) {
+      mobileMenuToggle.addEventListener("click", () => {
+        const opening = mobileNavPanel.hidden;
+        mobileNavPanel.hidden = !opening;
+        mobileMenuToggle.setAttribute("aria-expanded", String(opening));
+      });
+      mobileNavPanel.addEventListener("click", event => {
+        if (event.target.closest("a")) {
+          mobileNavPanel.hidden = true;
+          mobileMenuToggle.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+
     const profileBtn = document.getElementById("profileMenuBtn");
     const dropdown = document.getElementById("profileDropdown");
     if (profileBtn && dropdown) {
@@ -207,13 +234,13 @@
       btn.addEventListener("click", () => safeOpenAuthModal({ mode: btn.dataset.authMode, returnUrl: pagePath }));
     });
 
-    const ordersLink = document.querySelector(".js-orders-link");
-    if (ordersLink && !currentUser) {
+    document.querySelectorAll(".js-orders-link").forEach(ordersLink => {
+      if (currentUser) return;
       ordersLink.addEventListener("click", event => {
         event.preventDefault();
         safeOpenAuthModal({ mode: "login", returnUrl: "orders.html" });
       });
-    }
+    });
 
     const logoutBtn = document.getElementById("sharedLogoutBtn");
     if (logoutBtn) {
@@ -233,11 +260,11 @@
     footer.className = "trendora-footer";
     footer.innerHTML = `
       <div class="trendora-footer__inner">
-        <section class="trendora-footer__brand"><a class="trendora-footer__logo" href="index.html">trendora<span style="color:#879b61">.</span></a><p>A little more considered.<br>A little more you.<br>Good finds for your everyday.</p></section>
-        <div class="footer-column"><h2>${adminPages.has(page) ? "Manage store" : "Explore"}</h2>${adminPages.has(page) ? '<a href="admin-panel.html">Products</a><a href="admin-users.html">Customers</a><a href="customers-orders.html">Orders</a>' : '<a href="index.html#collection">Shop the collection</a><a href="index.html#edit">The everyday edit</a><a href="cart.html">Shopping bag</a>'}</div>
-        <div class="footer-column"><h2>Your Trendora</h2><a href="profile.html">My account</a><a href="track-order.html">Track an order</a><a href="forgot-password.html">Account help</a></div>
-        <div class="footer-note"><b>Shopping, made simpler.</b><p>Pay online or choose cash on delivery at checkout.</p><span>INR ₹ · India</span></div>
-      </div><div class="trendora-footer__bar"><span>© ${new Date().getFullYear()} Trendora. All rights reserved.</span><span>Thoughtfully chosen. Everyday loved.</span></div>`;
+        <section class="trendora-footer__brand"><a class="trendora-footer__logo" href="index.html">trendora<span style="color:#879b61">.</span></a><p>Online catalog, checkout and order tracking.</p></section>
+        <div class="footer-column"><h2>${adminPages.has(page) ? "Manage store" : "Shop"}</h2>${adminPages.has(page) ? '<a href="admin-panel.html">Products</a><a href="admin-users.html">Customers</a><a href="customers-orders.html">Orders</a>' : '<a href="index.html#collection">Products</a><a href="search.html">Search</a><a href="cart.html">Shopping bag</a>'}</div>
+        <div class="footer-column"><h2>Your Trendora</h2><a href="about.html">About us</a><a href="contact.html">Contact</a><a href="track-order.html">Track an order</a><a href="profile.html">My account</a></div>
+        <div class="footer-note"><b>Store policies</b><p><a href="terms.html">Terms &amp; Conditions</a><br><a href="privacy.html">Privacy Policy</a><br><a href="returns.html">Returns &amp; Refunds</a></p><span>INR ₹ · India</span></div>
+      </div><div class="trendora-footer__bar"><span>© ${new Date().getFullYear()} Trendora. All rights reserved.</span><span><a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a></span></div>`;
     return footer;
   }
 

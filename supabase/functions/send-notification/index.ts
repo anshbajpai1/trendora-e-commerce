@@ -1,5 +1,9 @@
 import { corsHeaders } from "../_shared/cors.ts";
 
+const rateLimitWindowMs = 15 * 60 * 1000;
+const rateLimitMaxRequests = 8;
+const requestWindows = new Map<string, { count: number; resetAt: number }>();
+
 const money = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR"
@@ -13,6 +17,23 @@ function jsonResponse(body: unknown, status = 200) {
       "Content-Type": "application/json"
     }
   });
+}
+
+function clientKey(req: Request) {
+  return (req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown").split(",")[0].trim();
+}
+
+function isRateLimited(req: Request) {
+  const now = Date.now();
+  const key = clientKey(req);
+  const record = requestWindows.get(key);
+  if (!record || now >= record.resetAt) {
+    requestWindows.set(key, { count: 1, resetAt: now + rateLimitWindowMs });
+    return false;
+  }
+  if (record.count >= rateLimitMaxRequests) return true;
+  record.count += 1;
+  return false;
 }
 
 function escapeHtml(value = "") {
@@ -137,6 +158,9 @@ function buildMessage(type: string, payload: Record<string, unknown>) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ success: false, message: "Method not allowed" }, 405);
+  // This protects warm edge isolates. For a strict global limit, place a shared
+  // rate limiter in front of the function as well.
+  if (isRateLimited(req)) return jsonResponse({ success: false, message: "Too many email requests. Please try again later." }, 429);
 
   try {
     const brevoApiKey = Deno.env.get("BREVO_API_KEY");
@@ -146,6 +170,8 @@ Deno.serve(async (req) => {
 
     const { to, type, payload = {} } = await req.json();
     if (!to || !type) throw new Error("Missing recipient or email type");
+    if (!/^\S+@\S+\.\S+$/.test(String(to)) || String(to).length > 254) throw new Error("A valid recipient email is required");
+    if (!["order-confirmation", "order-cancelled", "discount-code"].includes(type)) throw new Error("Unsupported email type");
 
     const message = buildMessage(type, payload);
     const brevoResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -174,6 +200,7 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ success: true, message: "Email sent successfully", brevo: result });
   } catch (error) {
-    return jsonResponse({ success: false, message: error.message || "Email send failed" }, 500);
+    const message = error instanceof Error ? error.message : "Email send failed";
+    return jsonResponse({ success: false, message }, /required|unsupported|valid/i.test(message) ? 400 : 500);
   }
 });

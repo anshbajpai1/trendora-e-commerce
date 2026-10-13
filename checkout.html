@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trendora - Checkout</title>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -71,6 +70,33 @@
   .total-breakdown div { display: flex; justify-content: space-between; gap: 14px; color: #6e785f; }
   .total-breakdown .payable { font-size: 19px; color: #111827; font-weight: 800; border-top: 1px solid #e5e7eb; padding-top: 12px; }
   .empty { color: #7b826f; }
+  .payment-methods { display: grid; gap: 10px; }
+  .payment-option {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 13px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid #dce2d3;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease;
+  }
+  .payment-option:hover { border-color: #7a8960; background: #f8f9f4; }
+  .payment-option.is-selected { border-color: #455336; background: #f3f6eb; box-shadow: inset 0 0 0 1px #455336; }
+  .payment-option input { width: 18px; height: 18px; margin: 0; accent-color: #455336; }
+  .payment-option__mark { width: 38px; height: 38px; display: grid; place-items: center; background: #e6ecd9; color: #405033; font-size: 15px; font-weight: 800; border-radius: 5px; }
+  .payment-option__copy { min-width: 0; }
+  .payment-option__copy strong, .payment-option__copy small { display: block; }
+  .payment-option__copy strong { color: #334028; font-size: 14px; }
+  .payment-option__copy small { margin-top: 3px; color: #727c67; font-size: 12px; line-height: 1.45; }
+  .payment-option__tag { color: #61714a; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-align: right; }
+  .trendora-pay-details { margin-top: 12px; padding: 14px; border-left: 3px solid #6d7e52; background: #f6f8f1; color: #566047; font-size: 13px; line-height: 1.55; }
+  .trendora-pay-details strong { color: #34422c; }
+  .payment-reference { margin-top: 4px; }
+  .payment-reference[hidden], .trendora-pay-details[hidden] { display: none; }
   @media (max-width: 860px) {
     .checkout-shell { width: min(100% - 24px, 1040px); margin-top: 14px; }
     .layout { grid-template-columns: 1fr; }
@@ -107,13 +133,23 @@
         <textarea id="custAddress" placeholder="Delivery Address" required></textarea>
       </section>
 
-      <section class="section">
-        <h2>Payment Method</h2>
-        <select id="paymentMethod" required>
-          <option value="">Select Payment Method</option>
-          <option value="COD">Cash on Delivery</option>
-          <option value="Online">Online Payment</option>
-        </select>
+      <section class="section" aria-labelledby="paymentTitle">
+        <h2 id="paymentTitle">Choose how you’d like to pay</h2>
+        <div class="payment-methods" role="radiogroup" aria-label="Payment method">
+          <label class="payment-option" data-payment-option="TRENDORA_PAY">
+            <input type="radio" name="paymentMethod" value="TRENDORA_PAY" aria-describedby="trendoraPayHelp">
+            <span class="payment-option__mark" aria-hidden="true">T</span>
+            <span class="payment-option__copy"><strong>Trendora Pay</strong><small>Pay securely with UPI, cards, netbanking and other methods.</small></span>
+            <span class="payment-option__tag">Secure</span>
+          </label>
+          <label class="payment-option is-selected" data-payment-option="COD">
+            <input type="radio" name="paymentMethod" value="COD" checked>
+            <span class="payment-option__mark" aria-hidden="true">₹</span>
+            <span class="payment-option__copy"><strong>Cash on Delivery</strong><small>Pay when your shipment is delivered to your address.</small></span>
+            <span class="payment-option__tag">Pay later</span>
+          </label>
+        </div>
+        <div id="trendoraPayHelp" class="trendora-pay-details" hidden><strong>Secure payment by Razorpay.</strong> Select Trendora Pay and continue to a secure Razorpay checkout, where you can choose UPI, card or netbanking. Trendora never receives your card or bank credentials.</div>
       </section>
     </div>
 
@@ -145,6 +181,8 @@
 </main>
 
 <script src="js/email-config.js"></script>
+<script src="js/payment-config.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script type="module">
 import { normalizeCart, escapeHTML, discountFor } from "./js/commerce.mjs";
 import { createOrderWithInventory } from "./js/checkout-order.js";
@@ -175,6 +213,19 @@ let deliveryAmount = 0;
 let discountAmount = 0;
 let finalTotal = 0;
 let savedAddresses = [];
+let selectedPaymentMethod = "COD";
+
+function syncPaymentMethod(method) {
+  selectedPaymentMethod = method;
+  document.querySelectorAll("[data-payment-option]").forEach(option => {
+    const selected = option.dataset.paymentOption === method;
+    option.classList.toggle("is-selected", selected);
+    const input = option.querySelector("input");
+    if (input) input.checked = selected;
+  });
+  const directPayment = method === "TRENDORA_PAY";
+  document.getElementById("trendoraPayHelp").hidden = !directPayment;
+}
 
 function offerText(code) { return code.type === "flat" ? `${formatCurrency(code.amount)} off` : `${Number(code.amount || 0)}% off`; }
 async function loadEligibleOffers() {
@@ -418,6 +469,7 @@ async function createNumericOrderRef(adminUID) {
 }
 
 const EMAIL_API_URL = window.TrendoraEmail?.functionUrl || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
+const PAYMENT_API_URL = String(window.TrendoraPayments?.apiUrl || "").replace(/\/$/, "");
 
 function emailOrderPayload(order) {
   return {
@@ -453,6 +505,75 @@ async function sendTrendoraEmail(type, to, payload) {
   }
 }
 
+async function paymentRequest(path, payload) {
+  if (!PAYMENT_API_URL) throw new Error("Online payments are not configured yet. Set the Trendora payment API URL before using Razorpay.");
+  const response = await fetch(`${PAYMENT_API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.success) throw new Error(result.message || "Unable to start the payment. Please try again.");
+  return result;
+}
+
+function openRazorpayCheckout({ payment, order, customer }) {
+  if (typeof window.Razorpay !== "function") throw new Error("The secure payment window could not be loaded. Check your internet connection and try again.");
+  return new Promise((resolve, reject) => {
+    let completed = false;
+    const checkout = new window.Razorpay({
+      key: payment.keyId,
+      amount: payment.amount,
+      currency: payment.currency,
+      name: "Trendora",
+      description: `Order #${order.id}`,
+      order_id: payment.orderId,
+      prefill: {
+        name: customer.name,
+        contact: `+91${customer.phone}`,
+        email: customer.email
+      },
+      notes: { trendora_order_id: order.id },
+      theme: { color: "#455336" },
+      modal: {
+        ondismiss: () => {
+          if (!completed) reject(new Error("Payment was cancelled. No amount was charged."));
+        }
+      },
+      handler: async (response) => {
+        try {
+          const verification = await paymentRequest("/payments/razorpay/verify", {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
+          });
+          completed = true;
+          resolve(verification.payment);
+        } catch (error) {
+          completed = true;
+          reject(error);
+        }
+      }
+    });
+    checkout.on("payment.failed", response => {
+      if (!completed) {
+        completed = true;
+        reject(new Error(response.error?.description || "Payment could not be completed."));
+      }
+    });
+    checkout.open();
+  });
+}
+
+async function processTrendoraPay(order, customer) {
+  const payment = await paymentRequest("/payments/razorpay/order", {
+    amount: Math.round(Number(order.totalAmount) * 100),
+    receipt: `trendora_${order.id}`,
+    notes: { trendora_order_id: order.id }
+  });
+  return openRazorpayCheckout({ payment, order, customer });
+}
+
 async function placeOrder() {
   if(checkoutInProgress)return;
   const loader = document.getElementById("loader");
@@ -468,7 +589,7 @@ async function placeOrder() {
   const name = document.getElementById("custName").value.trim();
   const phone = document.getElementById("custPhone").value.trim();
   const address = document.getElementById("custAddress").value.trim();
-  const paymentMethod = document.getElementById("paymentMethod").value;
+  const paymentMethod = selectedPaymentMethod;
   subtotal = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
   deliveryAmount = cart.reduce((sum, item) => sum + (Number(item.deliveryCharge || 0) * Number(item.quantity || 1)), 0);
   recalculateTotals();
@@ -479,13 +600,12 @@ async function placeOrder() {
     btn.disabled = false;
     return;
   }
-  if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD","Online"].includes(paymentMethod)) {
+  if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD","TRENDORA_PAY"].includes(paymentMethod)) {
     alert("Enter your name, a valid 10-digit mobile number, full delivery address and payment method.");
     loader.style.display = "none";
     btn.disabled = false;
     return;
   }
-
   checkoutInProgress=true;
   let awaitingPayment=false;
   let committedOrder=null;
@@ -493,7 +613,6 @@ async function placeOrder() {
   document.getElementById("applyDiscountBtn").disabled=true;
 
   try {
-    if(paymentMethod === "Online" && typeof Razorpay !== "function") throw new Error("Online payment could not load. Check your connection or choose cash on delivery.");
     // Refresh stale cart prices before committing; customer reviews any changed total.
     const latestItems=await Promise.all(cart.map(async item=>{const snap=await getDoc(doc(db,"products",item.id));if(!snap.exists())throw new Error(`${item.name} is no longer available.`);return {...item,price:Number(snap.data().price),name:snap.data().name||item.name,deliveryCharge:Math.max(0,Number(snap.data().deliveryCharge)||0)};}));
     if(latestItems.some((item,i)=>item.price!==cart[i].price||item.deliveryCharge!==Number(cart[i].deliveryCharge||0))){cart=latestItems;localStorage.setItem("cart",JSON.stringify(cart));loadCart();throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again.");}
@@ -517,8 +636,9 @@ async function placeOrder() {
       discountAmount,
       totalAmount: finalTotal,
       paymentMethod,
-      paymentStatus: "Pending",
+      paymentStatus: paymentMethod === "TRENDORA_PAY" ? "Payment pending" : "Pending",
       orderStatus: "Pending",
+      paymentReference: "",
       userUID: currentUser.uid,
       userEmail: currentUser.email,
       orderDate,
@@ -538,53 +658,25 @@ async function placeOrder() {
       await window.trendoraDialog.alert("Order placed successfully.");
       localStorage.removeItem("cart");
       window.location.href = "orders.html";
-    } else if (paymentMethod === "Online") {
-      let paymentCompleted = false;
-      awaitingPayment=true;
-      const cancelPayment=async(status)=>{
-        if(paymentCompleted)return;
-        paymentCompleted=true;
-        try{await updateOrderAtomic(db,orderData,{paymentStatus:status,orderStatus:"Cancelled"},{restore:true,releaseCoupon:true});resetCheckout();}
-        catch(error){console.error(error);await window.trendoraDialog.alert("Could not update the payment status. Check your orders before retrying.");location.href="orders.html";}
+    } else if (paymentMethod === "TRENDORA_PAY") {
+      const payment = await processTrendoraPay(orderData, { name, phone, email: currentUser.email });
+      const paymentUpdates = {
+        paymentStatus: "Paid",
+        paymentReference: payment.paymentId,
+        razorpayOrderId: payment.orderId,
+        orderStatus: "Confirmed"
       };
-      const options = {
-        key: "rzp_test_RSpnvcoG8kLckh",
-        amount: Math.round(finalTotal * 100),
-        currency: "INR",
-        name: "Trendora Checkout",
-        description: "Secure Online Payment",
-        prefill: { name, email: currentUser.email, contact: phone },
-        theme: { color: "#455336" },
-        modal: {
-          ondismiss: async function() { await cancelPayment("Payment Cancelled"); }
-        },
-        handler: async function(response) {
-          if(paymentCompleted)return;
-          paymentCompleted = true;
-          try {
-            const paymentUpdates = { paymentStatus: "Successful", paymentId: response.razorpay_payment_id || "" };
-            await updateOrderAtomic(db,orderData,paymentUpdates);
-            await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload({ ...orderData, ...paymentUpdates }) });
-            localStorage.removeItem("cart");
-            window.location.href = "orders.html";
-          } catch(error) {
-            console.error(error);
-            await window.trendoraDialog.alert("Payment was received but the order update needs attention. Do not pay again. Check your orders and share payment reference " + (response.razorpay_payment_id || "with the store"));
-            window.location.href = "orders.html";
-          }
-        }
-      };
-      const rzp = new Razorpay(options);
-      rzp.on("payment.failed", async function() {
-        rzp.close();
-        await cancelPayment("Payment Failed");
-        alert("Payment failed. Your items remain in your bag. You can try again.");
-      });
-      rzp.open();
+      await updateOrderAtomic(db, orderData, paymentUpdates);
+      Object.assign(orderData, paymentUpdates);
+      awaitingPayment = true;
+      await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
+      await window.trendoraDialog.alert("Payment received and verified. Your order has been confirmed.");
+      localStorage.removeItem("cart");
+      window.location.href = "orders.html";
     }
   } catch (error) {
-    if (committedOrder && paymentMethod === "Online") {
-      try { await updateOrderAtomic(db,committedOrder,{orderStatus:"Cancelled",paymentStatus:"Payment Failed"},{restore:true,releaseCoupon:true}); }
+    if (committedOrder && paymentMethod === "TRENDORA_PAY") {
+      try { await updateOrderAtomic(db,committedOrder,{orderStatus:"Cancelled",paymentStatus:"Payment verification failed"},{restore:true,releaseCoupon:true}); }
       catch(restoreError){console.error(restoreError);alert("Please check your orders before retrying checkout.");}
     }
     awaitingPayment=false;
@@ -595,6 +687,7 @@ async function placeOrder() {
 }
 
 document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
+document.querySelectorAll('input[name="paymentMethod"]').forEach(input => input.addEventListener("change", () => syncPaymentMethod(input.value)));
 document.getElementById("applyDiscountBtn").addEventListener("click", applyDiscountCode);
 document.getElementById("discountCode").addEventListener("keydown", e => {
   if (e.key === "Enter") {
