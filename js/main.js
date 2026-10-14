@@ -73,7 +73,7 @@
     return `
       <nav class="trendora-navbar" aria-label="Main navigation">
         <a class="trendora-brand" href="index.html" aria-label="Trendora home"><i class="brand-mark" aria-hidden="true">t</i><span>trendora</span></a>
-        <div class="nav-center"><a href="index.html#collection" class="${page === 'index.html' ? 'active' : ''}">Shop all</a><a href="wishlist.html">Saved</a><a href="index.html#edit">The everyday edit</a><a href="about.html" class="${page === 'about.html' ? 'active' : ''}">About us</a><a href="contact.html" class="${page === 'contact.html' ? 'active' : ''}">Contact</a></div>
+        <div class="nav-center"><a href="index.html#collection" class="${page === 'index.html' ? 'active' : ''}">Shop all</a><a href="wishlist.html">Saved</a><a href="index.html#edit">The everyday edit</a><a href="track-order.html" class="${page === 'track-order.html' ? 'active' : ''}">Track an order</a><a href="about.html" class="${page === 'about.html' ? 'active' : ''}">About us</a><a href="contact.html" class="${page === 'contact.html' ? 'active' : ''}">Contact</a></div>
         <div class="trendora-navlinks">
           <button class="nav-search" id="navSearchToggle" type="button" aria-label="Search products" aria-expanded="false" aria-controls="globalSearchPanel"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m16 16 5 5"/></svg><span>Search</span></button>
           ${navLink("orders.html", "Orders", "js-orders-link")}
