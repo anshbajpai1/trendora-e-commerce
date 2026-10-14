@@ -706,6 +706,7 @@ function openModal(id){
           <div class="val"><span class="badge ${paymentBadgeClass(pay)}">${escapeHtml(pay)}</span></div></div>
         ${o.returnStatus ? `<div class="info-card"><div class="lbl">Return Status</div>
           <div class="val"><span class="badge b-return">${escapeHtml(o.returnStatus)}</span></div></div>`:""}
+        ${o.returnStatus ? `<div class="info-card"><div class="lbl">Refund Mode</div><div class="val">${escapeHtml(o.refundMode||"Not selected")}</div></div>`:""}
         <div class="info-card"><div class="lbl">Payment Method</div><div class="val">${escapeHtml(o.paymentMethod||"—")}</div></div>
       </div>
     </div>
@@ -801,9 +802,11 @@ async function cancelOrder(order,button){
   }catch(e){console.error(e);alert("Failed to cancel order.");if(button){button.disabled=false;button.innerHTML=originalLabel;}}
 }
 async function requestReturn(order){
-  if (!await confirmOrderAction("Request a return for this order?")) return;
+  const walletRefund=await confirmOrderAction("Would you like an approved refund credited to your Trendora Wallet? Choose Cancel for the original payment method.");
+  const refundMode=walletRefund?"Trendora Wallet":"Original payment method";
+  if (!await confirmOrderAction(`Request a return with refund mode: ${refundMode}?`)) return;
   try{
-    const updates={returnStatus:"Requested",returnRequestedAt:new Date().toISOString()};
+    const updates={returnStatus:"Requested",returnRequestedAt:new Date().toISOString(),refundMode};
     await updateOrderAtomic(db,{...order,userUID:activeUser.uid},updates);
     alert("Return request submitted.");
     closeModal();

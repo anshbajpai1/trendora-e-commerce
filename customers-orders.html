@@ -794,6 +794,7 @@ function renderModal(order){
             ${returnOptions.map(([v,l])=>`<option value="${v}" ${v===returnStatus?"selected":""}>${l}</option>`).join("")}
           </select>
         </div>
+        ${order.returnStatus ? `<div class="field" style="grid-column:1/-1"><label>Requested refund mode</label><div class="v">${escapeHtml(order.refundMode||"Not selected")}</div></div>` : ""}
       </div>
       ${lockedByUser?'<p style="color:var(--danger); font-size:12px; font-weight:700; margin:8px 0 0"><svg width="12" height="12" style="display:inline-block;vertical-align:-2px"><use href="#i-alert"/></svg> Order was cancelled by the user. Status locked.</p>':''}
     </div>

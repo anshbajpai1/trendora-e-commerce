@@ -93,6 +93,10 @@
   .user-card h3 { margin: 0 0 6px; font-size: 16px; }
   .user-card p { margin: 4px 0; color: var(--muted); font-size: 13px; word-break: break-word; }
   .user-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .wallet-admin-form { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .wallet-admin-form label { display:block; margin-bottom:6px; color:var(--muted); font-size:11px; font-weight:700; }
+  .wallet-admin-form>div { display:flex; gap:8px; }
+  .wallet-admin-form input { width:130px; min-width:0; }
   .coupon-list { grid-column: 1 / -1; display: grid; gap: 8px; margin-top: 10px; }
   .coupon-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 8px; background: #f8f9f3; border: 1px solid #edf0e5; font-size: 13px; }
   .code { font-weight: 800; letter-spacing: 0.04em; color: var(--primary); }
@@ -172,6 +176,8 @@
     .topbar { align-items: flex-start; flex-direction: column; padding: 14px 16px; }
     .page { width: min(100% - 20px, 1380px); margin-top: 16px; }
     .coupon-form, .toolbar { grid-template-columns: 1fr; }
+    .wallet-admin-form>div { flex-direction:column; }
+    .wallet-admin-form input { width:100%; }
     .coupon-row { align-items: flex-start; flex-direction: column; }
     .detail-grid { grid-template-columns: 1fr; }
     .admin-dialog-head { align-items: flex-start; flex-direction: column; }
@@ -645,6 +651,10 @@ function renderUsers() {
             Orders
           </button>
         </div>
+        <form class="wallet-admin-form" data-uid="${user.uid}">
+          <label>Wallet balance (₹)</label>
+          <div><input name="walletBalance" type="number" min="0" step="0.01" value="${Number(user.walletBalance||0).toFixed(2)}"><button class="btn secondary" type="submit">Update wallet</button></div>
+        </form>
       </div>
       <form class="coupon-form privateCouponForm" data-uid="${user.uid}">
         <div class="field">
@@ -696,6 +706,20 @@ function renderUsers() {
       } catch (error) {
         alert(error.message || "Unable to generate discount code.");
       }
+    };
+  });
+
+  userList.querySelectorAll(".wallet-admin-form").forEach(form => {
+    form.onsubmit = async event => {
+      event.preventDefault();
+      const amount = Number(form.walletBalance.value);
+      if (!Number.isFinite(amount) || amount < 0) { alert("Enter a valid wallet balance."); return; }
+      const button = form.querySelector("button"); button.disabled = true;
+      try {
+        await setDoc(doc(db, "users", form.dataset.uid), { walletBalance: Math.round(amount * 100) / 100, walletUpdatedAt: serverTimestamp() }, { merge: true });
+        alert("Wallet balance updated.");
+      } catch (error) { alert("Could not update wallet: " + error.message); }
+      finally { button.disabled = false; }
     };
   });
 

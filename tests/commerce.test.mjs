@@ -59,6 +59,17 @@ test('checkout includes the current product delivery charge in the verified tota
  const placed=await createOrderWithInventory(db,{...order('delivery-charge'),totalAmount:120},'');
  assert.equal(placed.deliveryAmount,20);assert.equal(placed.totalAmount,120);
 });
+test('wallet checkout debits the exact verified amount and writes a ledger entry',async()=>{
+ const db=database({'products/a':{name:'A',price:100,quantity:2},'users/u':{walletBalance:150}});
+ const placed=await createOrderWithInventory(db,{...order('wallet'),paymentMethod:'WALLET'},'');
+ assert.equal(placed.totalAmount,100);assert.equal(db.data.get('users/u').walletBalance,50);
+ assert.equal(db.data.get('users/u/walletTransactions/wallet').amount,100);
+});
+test('wallet checkout does not change stock or balance when credit is insufficient',async()=>{
+ const db=database({'products/a':{name:'A',price:100,quantity:2},'users/u':{walletBalance:99}});
+ await assert.rejects(()=>createOrderWithInventory(db,{...order('wallet-low'),paymentMethod:'WALLET'},''));
+ assert.equal(db.data.get('products/a').quantity,2);assert.equal(db.data.get('users/u').walletBalance,99);
+});
 test('concurrent checkout cannot oversell the last unit',async()=>{
  const db=database({'products/a':{name:'A',price:100,quantity:1}});
  const outcomes=await Promise.allSettled([createOrderWithInventory(db,order('1')),createOrderWithInventory(db,order('2'))]);

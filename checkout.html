@@ -142,6 +142,12 @@
             <span class="payment-option__copy"><strong>Trendora Pay</strong><small>Pay securely with UPI, cards, netbanking and other methods.</small></span>
             <span class="payment-option__tag">Secure</span>
           </label>
+          <label class="payment-option" data-payment-option="WALLET">
+            <input type="radio" name="paymentMethod" value="WALLET" aria-describedby="walletHelp">
+            <span class="payment-option__mark" aria-hidden="true">W</span>
+            <span class="payment-option__copy"><strong>Trendora Wallet</strong><small>Use your available wallet credit for this order.</small></span>
+            <span class="payment-option__tag" id="walletBalanceTag">Loading</span>
+          </label>
           <label class="payment-option is-selected" data-payment-option="COD">
             <input type="radio" name="paymentMethod" value="COD" checked>
             <span class="payment-option__mark" aria-hidden="true">₹</span>
@@ -150,6 +156,7 @@
           </label>
         </div>
         <div id="trendoraPayHelp" class="trendora-pay-details" hidden><strong>Secure payment by Razorpay.</strong> Select Trendora Pay and continue to a secure Razorpay checkout, where you can choose UPI, card or netbanking. Trendora never receives your card or bank credentials.</div>
+        <div id="walletHelp" class="trendora-pay-details" hidden><strong>Pay with your store credit.</strong> Your current Trendora Wallet balance is <span id="walletBalanceHelp">₹0.00</span>. Wallet payment is available only when the balance covers the entire order.</div>
       </section>
     </div>
 
@@ -214,6 +221,7 @@ let discountAmount = 0;
 let finalTotal = 0;
 let savedAddresses = [];
 let selectedPaymentMethod = "COD";
+let walletBalance = 0;
 
 function syncPaymentMethod(method) {
   selectedPaymentMethod = method;
@@ -225,6 +233,7 @@ function syncPaymentMethod(method) {
   });
   const directPayment = method === "TRENDORA_PAY";
   document.getElementById("trendoraPayHelp").hidden = !directPayment;
+  document.getElementById("walletHelp").hidden = method !== "WALLET";
 }
 
 function offerText(code) { return code.type === "flat" ? `${formatCurrency(code.amount)} off` : `${Number(code.amount || 0)}% off`; }
@@ -265,6 +274,9 @@ onIdTokenChanged(auth, async (user) => {
       };
       document.getElementById("custName").value = data.name || user.displayName || "";
       document.getElementById("custPhone").value = data.phone || "";
+      walletBalance = Math.max(0, Number(data.walletBalance || 0));
+      document.getElementById("walletBalanceTag").textContent = formatCurrency(walletBalance);
+      document.getElementById("walletBalanceHelp").textContent = formatCurrency(walletBalance);
       savedAddresses = normalizeAddresses(data.addresses, data.address);
       renderSavedAddresses();
     } else {
@@ -600,7 +612,7 @@ async function placeOrder() {
     btn.disabled = false;
     return;
   }
-  if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD","TRENDORA_PAY"].includes(paymentMethod)) {
+  if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD","TRENDORA_PAY","WALLET"].includes(paymentMethod)) {
     alert("Enter your name, a valid 10-digit mobile number, full delivery address and payment method.");
     loader.style.display = "none";
     btn.disabled = false;
@@ -636,8 +648,8 @@ async function placeOrder() {
       discountAmount,
       totalAmount: finalTotal,
       paymentMethod,
-      paymentStatus: paymentMethod === "TRENDORA_PAY" ? "Payment pending" : "Pending",
-      orderStatus: "Pending",
+      paymentStatus: paymentMethod === "TRENDORA_PAY" ? "Payment pending" : paymentMethod === "WALLET" ? "Paid" : "Pending",
+      orderStatus: paymentMethod === "WALLET" ? "Confirmed" : "Pending",
       paymentReference: "",
       userUID: currentUser.uid,
       userEmail: currentUser.email,
@@ -652,10 +664,10 @@ async function placeOrder() {
     orderData = await createOrderWithInventory(db,orderData,appliedDiscount?.id || "");
     committedOrder = orderData;
 
-    if (paymentMethod === "COD") {
+    if (paymentMethod === "COD" || paymentMethod === "WALLET") {
       awaitingPayment = true;
       await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
-      await window.trendoraDialog.alert("Order placed successfully.");
+      await window.trendoraDialog.alert(paymentMethod === "WALLET" ? "Order placed and paid with your Trendora Wallet." : "Order placed successfully.");
       localStorage.removeItem("cart");
       window.location.href = "orders.html";
     } else if (paymentMethod === "TRENDORA_PAY") {

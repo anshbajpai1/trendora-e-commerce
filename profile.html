@@ -44,6 +44,8 @@
   .pill.warning { background: #fff5dc; color: #b7791f; }
   .pill.danger { background: #feeceb; color: #c24135; }
   .coupon-card p { margin: 8px 0 0; color: #7b826f; font-size: 14px; }
+  .wallet-balance { margin:0; color:#455336; font-size:30px; font-weight:800; letter-spacing:-.03em; }
+  .wallet-note { margin:7px 0 0; color:#7b826f; font-size:13px; line-height:1.55; }
   .empty { color: #7b826f; border: 1px dashed #e0e3d7; border-radius: 8px; padding: 18px; text-align: center; }
   @media (max-width: 820px) { .page { grid-template-columns: 1fr; width: min(100% - 20px, 1000px); } .topbar { padding: 14px 16px; } }
   @media (max-width: 520px) {
@@ -64,6 +66,11 @@
 </header>
 
 <main class="page">
+  <section class="panel">
+    <div class="panel-head"><h2>Trendora Wallet</h2><p>Store credit available for your next order.</p></div>
+    <div class="panel-body"><p class="wallet-balance" id="walletBalance">₹0.00</p><p class="wallet-note">Wallet credit can be used at checkout when it covers the full order amount.</p></div>
+  </section>
+
   <section class="panel">
     <div class="panel-head">
       <h2>Account Details</h2>
@@ -239,6 +246,7 @@ onAuthStateChanged(auth, async user => {
     const rootData = userSnap.exists() ? userSnap.data() : {};
     const nestedData = profileSnap.exists() ? profileSnap.data() : {};
     const data = { ...nestedData, ...rootData };
+    document.getElementById("walletBalance").textContent = formatCurrency(Math.max(0, Number(data.walletBalance || 0)));
     addressList.innerHTML = "";
     nameInput.value = data.name || data.fullName || user.displayName || "";
     emailInput.value = data.email || user.email || "";
