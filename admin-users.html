@@ -716,7 +716,17 @@ function renderUsers() {
       if (!Number.isFinite(amount) || amount < 0) { alert("Enter a valid wallet balance."); return; }
       const button = form.querySelector("button"); button.disabled = true;
       try {
-        await setDoc(doc(db, "users", form.dataset.uid), { walletBalance: Math.round(amount * 100) / 100, walletUpdatedAt: serverTimestamp() }, { merge: true });
+        await runTransaction(db, async tx => {
+          const userRef = doc(db, "users", form.dataset.uid);
+          const userSnap = await tx.get(userRef);
+          const previous = Math.max(0, Number(userSnap.data()?.walletBalance || 0));
+          const next = Math.round(amount * 100) / 100;
+          tx.set(userRef, { walletBalance: next, walletUpdatedAt: serverTimestamp() }, { merge: true });
+          if (next !== previous) {
+            const entryRef = doc(collection(db, "users", form.dataset.uid, "walletTransactions"));
+            tx.set(entryRef, { type: next > previous ? "credit" : "debit", amount: Math.abs(next - previous), balanceAfter: next, description: "Admin wallet adjustment", createdAt: serverTimestamp() });
+          }
+        });
         alert("Wallet balance updated.");
       } catch (error) { alert("Could not update wallet: " + error.message); }
       finally { button.disabled = false; }
