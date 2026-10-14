@@ -1,0 +1,23 @@
+/* Profile-specific overrides loaded after the shared storefront styles. */
+body.store-page .wallet-panel{background:#35432a!important;color:#fff!important;border:1px solid #35432a!important;box-shadow:0 18px 44px rgba(36,49,28,.22)!important}
+body.store-page .wallet-panel .panel-head{background:#35432a!important;border-color:rgba(255,255,255,.2)!important}
+body.store-page .wallet-panel .panel-head h2{color:#fff!important}
+body.store-page .wallet-panel .panel-head p{color:#d9e4c8!important}
+body.store-page .wallet-panel .wallet-label{color:#d9e8b9!important}
+body.store-page .wallet-panel .wallet-balance{color:#fff!important;text-shadow:none!important}
+body.store-page .wallet-panel .wallet-note{color:#eef5e3!important}
+body.store-page .wallet-panel .wallet-points{border-color:rgba(255,255,255,.22)!important}
+body.store-page .wallet-panel .wallet-points strong{color:#fff!important}
+body.store-page .wallet-panel .wallet-points span{color:#d9e4c8!important}
+body.store-page .wallet-panel .wallet-actions a{background:#e1ebc9!important;color:#26331e!important;border:1px solid #e1ebc9!important;box-shadow:none!important}
+body.store-page .wallet-panel .wallet-actions a:hover{background:#fff!important;color:#1f2919!important;transform:translateY(-1px)}
+body.store-page .wallet-panel .wallet-actions a.secondary{background:transparent!important;color:#fff!important;border-color:#d8e5bf!important}
+body.store-page .wallet-panel .wallet-actions a.secondary:hover{background:#4b5c3c!important;color:#fff!important}
+body.store-page .profile-intro h1{color:#2f3b25!important}
+body.store-page .profile-intro a{color:#465f31!important}
+body.store-page .panel:not(.wallet-panel){background:#fff!important;border-color:#dce2d3!important}
+body.store-page .panel:not(.wallet-panel) .panel-head{background:#f2f5ec!important;border-color:#dce2d3!important}
+body.store-page .panel:not(.wallet-panel) .panel-head h2{color:#35432a!important}
+body.store-page .panel:not(.wallet-panel) .panel-head p,body.store-page .panel:not(.wallet-panel) label{color:#536047!important}
+body.store-page .panel:not(.wallet-panel) input{color:#293322!important;border-color:#cfd8c2!important;background:#fff!important}
+body.store-page .panel:not(.wallet-panel) input:disabled{color:#5d6854!important;background:#eff2ea!important}
