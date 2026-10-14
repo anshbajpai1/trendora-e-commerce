@@ -76,7 +76,7 @@
 
   <section class="panel wallet-panel">
     <div class="panel-head"><h2>Trendora Wallet</h2><p>Your store credit, ready when you are.</p></div>
-    <div class="wallet-body"><span class="wallet-label">Your current wallet balance</span><p class="wallet-balance" id="walletBalance">₹0.00</p><p class="wallet-note">Use your full available balance at checkout for a faster, seamless payment.</p><div class="wallet-actions"><a href="checkout.html">Use wallet at checkout ↗</a><a class="secondary" href="wallet-transactions.html">View wallet transactions</a></div><div class="wallet-points"><div><strong>Secure store credit</strong><span>Refunds approved for Wallet appear here.</span></div><div><strong>No expiry shown</strong><span>Your available credit stays ready for checkout.</span></div></div></div>
+    <div class="wallet-body"><span class="wallet-label">Your current wallet balance</span><p class="wallet-balance is-loading" id="walletBalance" role="status" aria-live="polite"><span class="wallet-spinner" aria-hidden="true"></span><span class="wallet-loader-copy"><strong>Fetching your balance</strong><small>Your store credit is being secured</small></span></p><p class="wallet-note">Use your full available balance at checkout for a faster, seamless payment.</p><div class="wallet-actions"><a href="checkout.html">Use wallet at checkout ↗</a><a class="secondary" href="wallet-transactions.html">View wallet transactions</a></div><div class="wallet-points"><div><strong>Secure store credit</strong><span>Refunds approved for Wallet appear here.</span></div><div><strong>No expiry shown</strong><span>Your available credit stays ready for checkout.</span></div></div></div>
   </section>
 
   <section class="panel">
@@ -184,7 +184,9 @@ onAuthStateChanged(auth, async user => {
     const rootData = userSnap.exists() ? userSnap.data() : {};
     const nestedData = profileSnap.exists() ? profileSnap.data() : {};
     const data = { ...nestedData, ...rootData };
-    document.getElementById("walletBalance").textContent = formatCurrency(Math.max(0, Number(data.walletBalance || 0)));
+    const walletBalance = document.getElementById("walletBalance");
+    walletBalance.textContent = formatCurrency(Math.max(0, Number(data.walletBalance || 0)));
+    walletBalance.classList.remove("is-loading");
     addressList.innerHTML = "";
     nameInput.value = data.name || data.fullName || user.displayName || "";
     emailInput.value = data.email || user.email || "";
@@ -194,6 +196,9 @@ onAuthStateChanged(auth, async user => {
     else createAddressInput(data.address || "");
   } catch (err) {
     console.error("Error fetching profile:", err);
+    const walletBalance = document.getElementById("walletBalance");
+    walletBalance.textContent = "Balance unavailable";
+    walletBalance.classList.remove("is-loading");
     alert("Failed to load profile data.");
   } finally {
     showProfileContent();

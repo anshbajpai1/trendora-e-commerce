@@ -93,6 +93,20 @@ test('payment dismissal releases inventory and coupon exactly once',async()=>{
  for(let i=0;i<2;i++)await updateOrderAtomic(db,saved,{orderStatus:'Cancelled',paymentStatus:'Payment Cancelled'},{restore:true,releaseCoupon:true});
  assert.equal(db.data.get('products/a').quantity,2);assert.equal(db.data.get('discountCodes/OFFER').usedCount,0);
 });
+test('completing a wallet return credits the wallet once and writes a Trendora refund entry',async()=>{
+ const db=database({'products/a':{name:'A',price:100,quantity:1},'users/u':{walletBalance:25}});const saved=await createOrderWithInventory(db,{...order('return'),orderStatus:'Delivered',refundMode:'Trendora Wallet'});
+ await Promise.all([updateOrderAtomic(db,saved,{returnStatus:'Returned'},{restore:true}),updateOrderAtomic(db,saved,{returnStatus:'Returned'},{restore:true})]);
+ assert.equal(db.data.get('users/u').walletBalance,125);
+ const entry=db.data.get('users/u/walletTransactions/return-return');assert.equal(entry.amount,100);assert.equal(entry.description,'Return refund · Paid by Trendora');
+ assert.equal(db.data.get('users/u/orders/return').refundMode,'Trendora Wallet');
+});
+test('completing an original-payment return does not credit the wallet',async()=>{
+ const db=database({'products/a':{name:'A',price:100,quantity:1},'users/u':{walletBalance:25}});const saved=await createOrderWithInventory(db,{...order('original-return'),orderStatus:'Delivered',refundMode:'Original payment method'});
+ await updateOrderAtomic(db,saved,{returnStatus:'Returned'},{restore:true});
+ assert.equal(db.data.get('users/u').walletBalance,25);
+ assert.equal(db.data.get('users/u/orders/original-return').refundStatus,'Original payment refund pending');
+ assert.ok(db.data.get('users/u/orders/original-return').returnedAt);
+});
 test('active orders cannot be deleted',async()=>{
  const db=database({'products/a':{name:'A',price:100,quantity:2}});const saved=await createOrderWithInventory(db,order());await assert.rejects(()=>deleteOrderAtomic(db,saved));assert.ok(db.data.has('users/u/orders/1'));
 });

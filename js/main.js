@@ -55,7 +55,12 @@
       import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"),
       import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")
     ]).then(async ([appMod, authMod, dbMod]) => {
-      const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
+      const appName = adminPages.has(page) ? "trendora-admin" : "[DEFAULT]";
+      const app = appMod.getApps().some(existingApp => existingApp.name === appName)
+        ? appMod.getApp(appName)
+        : adminPages.has(page)
+          ? appMod.initializeApp(firebaseConfig, appName)
+          : appMod.initializeApp(firebaseConfig);
       authInstance = authMod.getAuth(app);
       dbInstance = dbMod.getFirestore(app);
       const persistence = adminPages.has(page)

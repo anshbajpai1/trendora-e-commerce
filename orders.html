@@ -236,6 +236,8 @@
     display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
     position:relative;padding:0 8px;
   }
+  .timeline-wrap{overflow-x:auto;padding:4px 0 8px;scrollbar-width:thin;}
+  .timeline-wrap .timeline{min-width:560px;}
   .tl-track,.tl-fill{
     position:absolute;top:16px;height:3px;border-radius:2px;
     left:calc((100% / var(--tl-steps)) / 2 + 8px);
@@ -476,6 +478,7 @@ const closeModalButton    = document.getElementById("closeModal");
 
 let allOrders = [];
 let activeUser = null;
+let openOrderId = null;
 const EMAIL_API_URL = window.TrendoraEmail?.functionUrl
   || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
 
@@ -515,6 +518,11 @@ function paymentBadgeClass(s){
   return "b-pending";
 }
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function formatEventDate(value){
+  if(!value)return "Not available";
+  const date=value?.toDate?value.toDate():value?.seconds?new Date(value.seconds*1000):new Date(value);
+  return Number.isNaN(date.getTime())?"Not available":date.toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"});
+}
 
 async function enrichOrderItems(o){
   const items = await Promise.all((o.items||[]).map(async it=>{
@@ -671,11 +679,27 @@ function trackingSteps(order){
   if (st==="Processing") idx=2;
   if (st==="Shipped") idx=3;
   if (["Completed","Delivered"].includes(st)||st==="Delivered") idx=4;
-  return steps.map((s,i)=>({...s,done:i<=idx,active:i===idx}));
+  const deliverySteps=steps.map((s,i)=>({...s,done:i<=idx,active:i===idx}));
+  const returnStatus=order.returnStatus;
+  if(!returnStatus)return deliverySteps;
+  const returnSteps=[...deliverySteps.map(step=>({...step,active:false}))];
+  returnSteps.push({k:"return-requested",lbl:"Return requested",ic:"fa-rotate-left",done:true,active:returnStatus==="Requested"});
+  if(returnStatus==="Approved"||returnStatus==="Returned"){
+    returnSteps.push({k:"return-approved",lbl:"Return approved",ic:"fa-circle-check",done:true,active:returnStatus==="Approved"});
+  }
+  if(returnStatus==="Returned"){
+    const walletCredited=order.refundStatus==="Wallet credited"||order.walletRefundedAt;
+    returnSteps.push({k:walletCredited?"wallet-credited":"refund-pending",lbl:walletCredited?"Wallet credited":"Refund pending",ic:walletCredited?"fa-wallet":"fa-clock",done:true,active:true});
+  }
+  if(returnStatus==="Rejected"){
+    returnSteps.push({k:"return-rejected",lbl:"Return declined",ic:"fa-circle-xmark",done:true,active:true});
+  }
+  return returnSteps;
 }
 
 function openModal(id){
   const o=allOrders.find(x=>x.id===id); if(!o) return;
+  openOrderId=id;
   const st=o.orderStatus||"Pending", pay=o.paymentStatus||"Pending";
   mOrderId.textContent = `#${(o.id||"").slice(-10).toUpperCase()}`;
 
@@ -686,14 +710,15 @@ function openModal(id){
   modalBody.innerHTML = `
     <div class="track">
       <h4><i class="fa-solid fa-route"></i> Live Order Tracking</h4>
-      <div class="timeline" style="--tl-steps:${steps.length};--tl-fill:${Math.max(0,fillPct)}%;">
-        <div class="tl-track"></div>
-        <div class="tl-fill"></div>
-        ${steps.map(s=>`
-          <div class="tl-step ${s.done?'done':''} ${s.active?'active':''}">
-            <div class="tl-dot"><i class="fa-solid ${s.ic}"></i></div>
-            <div class="tl-lbl">${s.lbl}</div>
-          </div>`).join("")}
+      <div class="timeline-wrap"><div class="timeline" style="--tl-steps:${steps.length};--tl-fill:${Math.max(0,fillPct)}%;">
+          <div class="tl-track"></div>
+          <div class="tl-fill"></div>
+          ${steps.map(s=>`
+            <div class="tl-step ${s.done?'done':''} ${s.active?'active':''}">
+              <div class="tl-dot"><i class="fa-solid ${s.ic}"></i></div>
+              <div class="tl-lbl">${s.lbl}</div>
+            </div>`).join("")}
+        </div>
       </div>
     </div>
 
@@ -707,6 +732,9 @@ function openModal(id){
         ${o.returnStatus ? `<div class="info-card"><div class="lbl">Return Status</div>
           <div class="val"><span class="badge b-return">${escapeHtml(o.returnStatus)}</span></div></div>`:""}
         ${o.returnStatus ? `<div class="info-card"><div class="lbl">Refund Mode</div><div class="val">${escapeHtml(o.refundMode||"Not selected")}</div></div>`:""}
+        ${o.walletRefundedAt ? `<div class="info-card"><div class="lbl">Wallet refund</div><div class="val">${inr2(o.walletRefundAmount||o.totalAmount||0)} credited</div></div>`:""}
+        ${o.returnedAt ? `<div class="info-card"><div class="lbl">Return completed</div><div class="val">Item returned on ${escapeHtml(formatEventDate(o.returnedAt))}</div></div>`:""}
+        ${o.refundStatus&&!o.walletRefundedAt ? `<div class="info-card"><div class="lbl">Refund status</div><div class="val">${escapeHtml(o.refundStatus)}</div></div>`:""}
         <div class="info-card"><div class="lbl">Payment Method</div><div class="val">${escapeHtml(o.paymentMethod||"—")}</div></div>
       </div>
     </div>
@@ -780,7 +808,7 @@ function openModal(id){
   modal.classList.add("open");
   document.body.style.overflow="hidden";
 }
-function closeModal(){modal.classList.remove("open");document.body.style.overflow="";}
+function closeModal(){openOrderId=null;modal.classList.remove("open");document.body.style.overflow="";}
 closeModalButton.addEventListener("click",event=>{event.preventDefault();closeModal();});
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
@@ -834,9 +862,11 @@ onAuthStateChanged(auth,user=>{
   activeUser=user;
   const ref=collection(db,"users",user.uid,"orders");
   unsubscribeOrders=onSnapshot(ref,async snap=>{
+    const visibleOrderId=modal.classList.contains("open")?openOrderId:null;
     allOrders=await Promise.all(snap.docs.map(d=>enrichOrderItems({...d.data(),id:d.id})));
     updateStats();
     applyOrderFilters();
+    if(visibleOrderId&&allOrders.some(order=>order.id===visibleOrderId))openModal(visibleOrderId);
   },err=>{
     console.error(err);
     ordersList.innerHTML=`<div class="state">

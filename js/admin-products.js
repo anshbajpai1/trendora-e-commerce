@@ -1,4 +1,4 @@
-import {auth,db} from './firebase-client.js';
+import {auth,db} from './firebase-admin-client.js';
 import {onAuthStateChanged,setPersistence,browserSessionPersistence} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {collection,onSnapshot,collectionGroup,doc,addDoc,updateDoc,deleteDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {escapeHTML,validateProduct} from './commerce.mjs';

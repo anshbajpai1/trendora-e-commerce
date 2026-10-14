@@ -94,9 +94,15 @@
   .user-card p { margin: 4px 0; color: var(--muted); font-size: 13px; word-break: break-word; }
   .user-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .wallet-admin-form { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-  .wallet-admin-form label { display:block; margin-bottom:6px; color:var(--muted); font-size:11px; font-weight:700; }
+  .wallet-summary { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; padding:10px 12px; border:1px solid #d9e1cd; background:#f3f6ed; border-radius:7px; }
+  .wallet-summary span, .wallet-admin-form label, .wallet-admin-form small { display:block; color:var(--muted); font-size:11px; font-weight:700; }
+  .wallet-summary strong { color:var(--primary-dark); font-size:17px; }
+  .wallet-admin-form label { margin-bottom:6px; }
   .wallet-admin-form>div { display:flex; gap:8px; }
-  .wallet-admin-form input { width:130px; min-width:0; }
+  .wallet-admin-form select { width:106px; min-width:0; }
+  .wallet-admin-form input { width:120px; min-width:0; }
+  .wallet-admin-form small { margin-top:7px; font-weight:500; line-height:1.4; }
+  .wallet-history-btn { margin-top:9px; }
   .coupon-list { grid-column: 1 / -1; display: grid; gap: 8px; margin-top: 10px; }
   .coupon-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 8px; background: #f8f9f3; border: 1px solid #edf0e5; font-size: 13px; }
   .code { font-weight: 800; letter-spacing: 0.04em; color: var(--primary); }
@@ -168,6 +174,14 @@
   .order-item h4 { margin: 0 0 4px; font-size: 13px; overflow-wrap: anywhere; }
   .order-item span { display: block; color: var(--muted); font-size: 12px; font-weight: 800; }
   .order-item strong { white-space: nowrap; }
+  .wallet-history { display:grid; gap:9px; }
+  .wallet-history-summary { margin:0; padding:12px; background:#f3f6ed; border:1px solid #d9e1cd; border-radius:8px; color:var(--primary-dark); }
+  .wallet-entry { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; padding:12px; border:1px solid #edf0e5; border-radius:8px; background:#fff; }
+  .wallet-entry strong, .wallet-entry small { display:block; }
+  .wallet-entry small { margin-top:4px; color:var(--muted); font-size:11px; }
+  .wallet-entry-amount { text-align:right; font-weight:800; }
+  .wallet-entry.credit .wallet-entry-amount { color:var(--success); }
+  .wallet-entry.debit .wallet-entry-amount { color:var(--danger); }
   @media (max-width: 1100px) {
     .coupon-form { grid-template-columns: repeat(3, minmax(0,1fr)); }
     .user-card, .stats { grid-template-columns: 1fr; }
@@ -177,7 +191,7 @@
     .page { width: min(100% - 20px, 1380px); margin-top: 16px; }
     .coupon-form, .toolbar { grid-template-columns: 1fr; }
     .wallet-admin-form>div { flex-direction:column; }
-    .wallet-admin-form input { width:100%; }
+    .wallet-admin-form input, .wallet-admin-form select { width:100%; }
     .coupon-row { align-items: flex-start; flex-direction: column; }
     .detail-grid { grid-template-columns: 1fr; }
     .admin-dialog-head { align-items: flex-start; flex-direction: column; }
@@ -314,7 +328,7 @@ const firebaseConfig = {
   appId: "1:1080352553475:web:850319561617a21fdfec36"
 };
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig, "trendora-admin");
 const db = getFirestore(app);
 const auth = getAuth(app);
 await setPersistence(auth, browserSessionPersistence);
@@ -464,6 +478,7 @@ async function showFullProfile(uid, trigger) {
         ${renderDetailItem("Email", data.email)}
         ${renderDetailItem("Phone", data.phone || data.phoneNumber)}
         ${renderDetailItem("User ID", uid)}
+        ${renderDetailItem("Wallet balance", currency.format(Math.max(0, Number(data.walletBalance || 0))))}
         ${renderDetailItem("Joined", formatDate(data.createdAt))}
         ${renderDetailItem("Last Updated", formatDate(data.updatedAt || data.lastUpdatedAt))}
       </div>
@@ -475,6 +490,40 @@ async function showFullProfile(uid, trigger) {
   } catch (error) {
     console.error(error);
     alert("Unable to load full profile.");
+  } finally {
+    setButtonLoading(trigger, false);
+  }
+}
+
+function transactionMillis(transaction) {
+  if (transaction.createdAt?.toMillis) return transaction.createdAt.toMillis();
+  if (transaction.createdAt?.seconds) return transaction.createdAt.seconds * 1000;
+  const parsed = Date.parse(transaction.createdAt || "");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function showWalletHistory(uid, trigger) {
+  setButtonLoading(trigger, true);
+  try {
+    const [userSnap, transactionSnap] = await Promise.all([
+      getDoc(doc(db, "users", uid)),
+      getDocs(collection(db, "users", uid, "walletTransactions"))
+    ]);
+    const user = userSnap.exists() ? userSnap.data() : {};
+    const transactions = transactionSnap.docs.map(transactionDoc => ({ ...transactionDoc.data(), id: transactionDoc.id }))
+      .sort((a, b) => transactionMillis(b) - transactionMillis(a));
+    const balance = Math.max(0, Number(user.walletBalance || 0));
+    const history = transactions.length ? transactions.map(transaction => {
+      const credit = transaction.type === "credit";
+      return `<article class="wallet-entry ${credit ? "credit" : "debit"}">
+        <div><strong>${escapeHtml(transaction.description || "Wallet transaction")}</strong><small>${escapeHtml(formatDate(transaction.createdAt))}${transaction.orderId ? ` · Order #${escapeHtml(transaction.orderId)}` : ""}</small></div>
+        <div class="wallet-entry-amount">${credit ? "+" : "−"}${currency.format(Math.abs(Number(transaction.amount || 0)))}<small>Balance: ${currency.format(Math.max(0, Number(transaction.balanceAfter || 0)))}</small></div>
+      </article>`;
+    }).join("") : '<div class="empty">No wallet transactions for this user yet.</div>';
+    openUserModal(`${user.name || user.email || "User"} Wallet`, `<div class="wallet-history"><p class="wallet-history-summary">Current wallet balance: <strong>${currency.format(balance)}</strong></p>${history}</div>`);
+  } catch (error) {
+    console.error(error);
+    alert("Unable to load wallet history.");
   } finally {
     setButtonLoading(trigger, false);
   }
@@ -651,10 +700,13 @@ function renderUsers() {
             Orders
           </button>
         </div>
+        <div class="wallet-summary"><span>Current wallet balance</span><strong>${currency.format(Math.max(0, Number(user.walletBalance || 0)))}</strong></div>
         <form class="wallet-admin-form" data-uid="${user.uid}">
-          <label>Wallet balance (₹)</label>
-          <div><input name="walletBalance" type="number" min="0" step="0.01" value="${Number(user.walletBalance||0).toFixed(2)}"><button class="btn secondary" type="submit">Update wallet</button></div>
+          <label>Wallet adjustment</label>
+          <div><select name="walletAction" aria-label="Wallet action"><option value="credit">Credit</option><option value="debit">Debit</option></select><input name="walletAmount" type="number" min="0.01" step="0.01" placeholder="Amount (₹)" required><button class="btn secondary" type="submit">Apply</button></div>
+          <small>Credits appear to the customer as “Paid by Trendora”.</small>
         </form>
+        <button class="btn ghost wallet-history-btn viewWalletBtn" data-uid="${user.uid}" type="button">View wallet history</button>
       </div>
       <form class="coupon-form privateCouponForm" data-uid="${user.uid}">
         <div class="field">
@@ -712,22 +764,23 @@ function renderUsers() {
   userList.querySelectorAll(".wallet-admin-form").forEach(form => {
     form.onsubmit = async event => {
       event.preventDefault();
-      const amount = Number(form.walletBalance.value);
-      if (!Number.isFinite(amount) || amount < 0) { alert("Enter a valid wallet balance."); return; }
+      const amount = Number(form.walletAmount.value);
+      const action = form.walletAction.value;
+      if (!Number.isFinite(amount) || amount <= 0) { alert("Enter a valid wallet amount."); return; }
       const button = form.querySelector("button"); button.disabled = true;
       try {
         await runTransaction(db, async tx => {
           const userRef = doc(db, "users", form.dataset.uid);
           const userSnap = await tx.get(userRef);
           const previous = Math.max(0, Number(userSnap.data()?.walletBalance || 0));
-          const next = Math.round(amount * 100) / 100;
+          if (action === "debit" && amount > previous) throw new Error("Debit amount cannot exceed the user's wallet balance.");
+          const next = Math.round((action === "credit" ? previous + amount : previous - amount) * 100) / 100;
           tx.set(userRef, { walletBalance: next, walletUpdatedAt: serverTimestamp() }, { merge: true });
-          if (next !== previous) {
-            const entryRef = doc(collection(db, "users", form.dataset.uid, "walletTransactions"));
-            tx.set(entryRef, { type: next > previous ? "credit" : "debit", amount: Math.abs(next - previous), balanceAfter: next, description: "Admin wallet adjustment", createdAt: serverTimestamp() });
-          }
+          const entryRef = doc(collection(db, "users", form.dataset.uid, "walletTransactions"));
+          tx.set(entryRef, { type: action, amount: Math.round(amount * 100) / 100, balanceAfter: next, description: action === "credit" ? "Paid by Trendora" : "Wallet debit by Trendora", source: "trendora", createdAt: serverTimestamp() });
         });
-        alert("Wallet balance updated.");
+        form.reset();
+        alert(`Wallet ${action === "credit" ? "credited" : "debited"} successfully.`);
       } catch (error) { alert("Could not update wallet: " + error.message); }
       finally { button.disabled = false; }
     };
@@ -739,6 +792,10 @@ function renderUsers() {
 
   userList.querySelectorAll(".viewOrdersBtn").forEach(btn => {
     btn.onclick = () => showOrderHistory(btn.dataset.uid, btn);
+  });
+
+  userList.querySelectorAll(".viewWalletBtn").forEach(btn => {
+    btn.onclick = () => showWalletHistory(btn.dataset.uid, btn);
   });
 
   bindCodeButtons(userList);

@@ -536,7 +536,7 @@ const firebaseConfig = {
     appId: "1:1080352553475:web:850319561617a21fdfec36"
   };
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig, "trendora-admin");
 const db = getFirestore(app);
 const auth = getAuth(app);
 await setPersistence(auth, browserSessionPersistence);
@@ -795,6 +795,7 @@ function renderModal(order){
           </select>
         </div>
         ${order.returnStatus ? `<div class="field" style="grid-column:1/-1"><label>Requested refund mode</label><div class="v">${escapeHtml(order.refundMode||"Not selected")}</div></div>` : ""}
+        ${order.returnedAt ? `<div class="field" style="grid-column:1/-1"><label>Return completed</label><div class="v">Item returned on ${escapeHtml(formatDate(order.returnedAt))}${order.refundStatus ? ` · ${escapeHtml(order.refundStatus)}` : ""}</div></div>` : ""}
       </div>
       ${lockedByUser?'<p style="color:var(--danger); font-size:12px; font-weight:700; margin:8px 0 0"><svg width="12" height="12" style="display:inline-block;vertical-align:-2px"><use href="#i-alert"/></svg> Order was cancelled by the user. Status locked.</p>':''}
     </div>

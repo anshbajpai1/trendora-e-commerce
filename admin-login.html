@@ -104,7 +104,7 @@ const firebaseConfig = {
 
 };
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig, "trendora-admin");
 const auth = getAuth(app);
 await setPersistence(auth, browserSessionPersistence);
 
