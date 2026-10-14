@@ -1,18 +1,18 @@
 /* Profile-specific overrides loaded after the shared storefront styles. */
-body.store-page .wallet-panel{background:#35432a!important;color:#fff!important;border:1px solid #35432a!important;box-shadow:0 18px 44px rgba(36,49,28,.22)!important}
-body.store-page .wallet-panel .panel-head{background:#35432a!important;border-color:rgba(255,255,255,.2)!important}
-body.store-page .wallet-panel .panel-head h2{color:#fff!important}
-body.store-page .wallet-panel .panel-head p{color:#d9e4c8!important}
-body.store-page .wallet-panel .wallet-label{color:#d9e8b9!important}
-body.store-page .wallet-panel .wallet-balance{color:#fff!important;text-shadow:none!important}
-body.store-page .wallet-panel .wallet-note{color:#eef5e3!important}
-body.store-page .wallet-panel .wallet-points{border-color:rgba(255,255,255,.22)!important}
-body.store-page .wallet-panel .wallet-points strong{color:#fff!important}
-body.store-page .wallet-panel .wallet-points span{color:#d9e4c8!important}
-body.store-page .wallet-panel .wallet-actions a{background:#e1ebc9!important;color:#26331e!important;border:1px solid #e1ebc9!important;box-shadow:none!important}
-body.store-page .wallet-panel .wallet-actions a:hover{background:#fff!important;color:#1f2919!important;transform:translateY(-1px)}
-body.store-page .wallet-panel .wallet-actions a.secondary{background:transparent!important;color:#fff!important;border-color:#d8e5bf!important}
-body.store-page .wallet-panel .wallet-actions a.secondary:hover{background:#4b5c3c!important;color:#fff!important}
+body.store-page .wallet-panel{background:#eef1e4!important;color:#34402b!important;border:1px solid #d8dfc8!important;box-shadow:0 14px 34px rgba(54,68,39,.08)!important}
+body.store-page .wallet-panel .panel-head{background:#e5ead7!important;border-color:#d8dfc8!important}
+body.store-page .wallet-panel .panel-head h2{color:#34402b!important}
+body.store-page .wallet-panel .panel-head p{color:#647153!important}
+body.store-page .wallet-panel .wallet-label{color:#596b42!important}
+body.store-page .wallet-panel .wallet-balance{color:#304128!important;text-shadow:none!important}
+body.store-page .wallet-panel .wallet-note{color:#536046!important}
+body.store-page .wallet-panel .wallet-points{border-color:#ced8bb!important}
+body.store-page .wallet-panel .wallet-points strong{color:#35422b!important}
+body.store-page .wallet-panel .wallet-points span{color:#657154!important}
+body.store-page .wallet-panel .wallet-actions a{background:#475c35!important;color:#fff!important;border:1px solid #475c35!important;box-shadow:none!important}
+body.store-page .wallet-panel .wallet-actions a:hover{background:#35482a!important;color:#fff!important;transform:translateY(-1px)}
+body.store-page .wallet-panel .wallet-actions a.secondary{background:#f9faf5!important;color:#415735!important;border-color:#aebc94!important}
+body.store-page .wallet-panel .wallet-actions a.secondary:hover{background:#e1e8d1!important;color:#35482a!important}
 body.store-page .profile-intro h1{color:#2f3b25!important}
 body.store-page .profile-intro a{color:#465f31!important}
 body.store-page .panel:not(.wallet-panel){background:#fff!important;border-color:#dce2d3!important}
