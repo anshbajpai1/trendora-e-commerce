@@ -193,6 +193,10 @@
   }
 
   function bindNav() {
+    document.querySelectorAll(`.trendora-navbar a[href="${page}"]`).forEach(link => {
+      link.classList.add("active");
+      link.setAttribute("aria-current", "page");
+    });
     const searchToggle = document.getElementById("navSearchToggle");
     if (searchToggle) {
       searchToggle.addEventListener("click", event => {
