@@ -465,6 +465,7 @@ let users = [];
 let discounts = [];
 const usersPerPage = 8;
 let currentUserPage = 1;
+let modalReturnFocus = null;
 
 function generateCode(seed = "TRENDORA") {
   const clean = seed.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7) || "TREND";
@@ -509,7 +510,8 @@ function setButtonLoading(button, loading) {
   button.disabled = loading;
 }
 
-function openUserModal(title, html) {
+function openUserModal(title, html, trigger = null) {
+  modalReturnFocus = trigger;
   userModalTitle.textContent = title;
   userModalBody.innerHTML = html;
   userModal.classList.add("open");
@@ -519,6 +521,8 @@ function openUserModal(title, html) {
 function closeUserModal() {
   userModal.classList.remove("open");
   userModal.setAttribute("aria-hidden", "true");
+  modalReturnFocus?.focus();
+  modalReturnFocus = null;
 }
 
 function renderDetailItem(label, value) {
@@ -595,7 +599,7 @@ async function showFullProfile(uid, trigger) {
         <span>Delivery Addresses</span>
         ${addresses.length ? `<p>${addresses.map(address => escapeHtml(typeof address === "string" ? address : address.address || address.line || "")).filter(Boolean).join("<br>")}</p>` : "<p>Not provided</p>"}
       </div>
-    `);
+    `, trigger);
   } catch (error) {
     console.error(error);
     alert("Unable to load full profile.");
@@ -629,7 +633,7 @@ async function showWalletHistory(uid, trigger) {
         <div class="wallet-entry-amount">${credit ? "+" : "−"}${currency.format(Math.abs(Number(transaction.amount || 0)))}<small>Balance: ${currency.format(Math.max(0, Number(transaction.balanceAfter || 0)))}</small></div>
       </article>`;
     }).join("") : '<div class="empty">No wallet transactions for this user yet.</div>';
-    openUserModal(`${user.name || user.email || "User"} Wallet`, `<div class="wallet-history"><p class="wallet-history-summary">Current wallet balance: <strong>${currency.format(balance)}</strong></p>${history}</div>`);
+    openUserModal(`${user.name || user.email || "User"} Wallet`, `<div class="wallet-history"><p class="wallet-history-summary">Current wallet balance: <strong>${currency.format(balance)}</strong></p>${history}</div>`, trigger);
   } catch (error) {
     console.error(error);
     alert("Unable to load wallet history.");
@@ -645,7 +649,7 @@ async function showOrderHistory(uid, trigger) {
     const orders = (await Promise.all(snap.docs.map(orderDoc => enrichOrderItems({ ...orderDoc.data(), id: orderDoc.id }))))
       .sort((a, b) => Number(b.orderPlacedAtMs || (b.timestamp?.seconds || 0)*1000) - Number(a.orderPlacedAtMs || (a.timestamp?.seconds || 0)*1000));
     if (!orders.length) {
-      openUserModal("Order History", '<div class="empty">No orders found for this user.</div>');
+      openUserModal("Order History", '<div class="empty">No orders found for this user.</div>', trigger);
       return;
     }
     openUserModal("Order History", orders.map(order => {
@@ -661,7 +665,7 @@ async function showOrderHistory(uid, trigger) {
           ${renderOrderItems(items)}
         </article>
       `;
-    }).join(""));
+    }).join(""), trigger);
   } catch (error) {
     console.error(error);
     alert("Unable to load order history.");
@@ -1019,6 +1023,9 @@ discountFilter.addEventListener("change", resetUserPagination);
 document.getElementById("closeUserModal").onclick = closeUserModal;
 userModal.addEventListener("click", event => {
   if (event.target === userModal) closeUserModal();
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && userModal.classList.contains("open")) closeUserModal();
 });
 const legacy_goToAdmin = document.getElementById("goToAdmin"); if (legacy_goToAdmin) legacy_goToAdmin.onclick = () => window.location.href = "admin-panel.html";
 const legacy_logoutBtn = document.getElementById("logoutBtn"); if (legacy_logoutBtn) legacy_logoutBtn.onclick = async () => {
