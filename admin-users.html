@@ -203,6 +203,106 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/storefront.css">
 <script src="js/experience.js" defer></script>
+<style>
+  /* Page-specific layout refinements: keep the customer controls calm and easy to scan. */
+  .admin-workspace .panel-head { align-items: flex-start; }
+  .admin-workspace .panel-head h2 { letter-spacing: -0.02em; }
+  .admin-workspace .panel-body { padding: 22px; }
+  .admin-workspace .toolbar {
+    grid-template-columns: minmax(0, 1fr) 210px;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .admin-workspace #globalCouponForm {
+    grid-template-columns: minmax(190px, 1.45fr) repeat(5, minmax(100px, 0.72fr)) auto;
+    gap: 12px;
+  }
+  .admin-workspace .user-list { gap: 16px; }
+  .admin-workspace .user-card {
+    grid-template-columns: minmax(255px, 0.8fr) minmax(0, 1.35fr);
+    gap: 24px;
+    padding: 0;
+    overflow: hidden;
+  }
+  .admin-workspace .user-profile,
+  .admin-workspace .private-offer-panel { padding: 24px; min-width: 0; }
+  .admin-workspace .user-profile {
+    background: #fbfcf8;
+    border-right: 1px solid #e4e9dc;
+  }
+  .admin-workspace .user-card h3 { margin-bottom: 10px; }
+  .admin-workspace .user-card p { margin: 6px 0; line-height: 1.45; }
+  .admin-workspace .user-actions { margin: 17px 0 18px; }
+  .admin-workspace .wallet-summary { margin: 0 0 12px; padding: 12px 13px; }
+  .admin-workspace .wallet-admin-form { margin-top: 16px; padding-top: 16px; }
+  .admin-workspace .wallet-admin-form > div { align-items: stretch; }
+  .admin-workspace .wallet-history-btn { width: 100%; margin-top: 12px; }
+  .private-offer-heading { margin-bottom: 16px; }
+  .private-offer-heading strong { display: block; color: #435536; font-size: 14px; font-weight: 600; }
+  .private-offer-heading span { display: block; margin-top: 3px; color: #879379; font-size: 11px; }
+  .admin-workspace .privateCouponForm {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0;
+    background: transparent;
+  }
+  .admin-workspace .privateCouponForm .btn { min-width: 106px; }
+  .admin-workspace .coupon-list {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 18px 24px 24px;
+    border-top: 1px solid #e4e9dc;
+    background: #fff;
+  }
+  .admin-workspace .coupon-row { gap: 18px; }
+  .admin-workspace .coupon-row .actions { flex-shrink: 0; }
+  .admin-workspace .coupon-row .btn { min-width: 72px; }
+  .user-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #e4e9dc;
+  }
+  .user-pagination-status { color: #7a876c; font-size: 11px; }
+  .user-pagination-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .admin-workspace .pagination-btn {
+    min-width: 36px;
+    min-height: 34px;
+    padding: 7px 10px;
+    border: 1px solid #dce5d1;
+    border-radius: 4px;
+    background: #fff;
+    color: #586f44;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .admin-workspace .pagination-btn:hover:not(:disabled) { background: #f0f4e8; }
+  .admin-workspace .pagination-btn.active { background: #495f36; border-color: #495f36; color: #fff; }
+  .admin-workspace .pagination-btn:disabled { cursor: not-allowed; opacity: 0.45; }
+  @media (max-width: 1500px) {
+    .admin-workspace #globalCouponForm { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1150px) {
+    .admin-workspace .user-card { grid-template-columns: 1fr; }
+    .admin-workspace .user-profile { border-right: 0; border-bottom: 1px solid #e4e9dc; }
+  }
+  @media (max-width: 700px) {
+    .admin-workspace .toolbar,
+    .admin-workspace #globalCouponForm,
+    .admin-workspace .privateCouponForm { grid-template-columns: 1fr; }
+    .admin-workspace .user-profile,
+    .admin-workspace .private-offer-panel { padding: 18px; }
+    .admin-workspace .coupon-list { padding: 16px 18px 18px; }
+    .admin-workspace .coupon-row { align-items: stretch; }
+    .admin-workspace .coupon-row .actions { width: 100%; }
+    .admin-workspace .coupon-row .actions .btn { flex: 1; }
+    .user-pagination { align-items: flex-start; flex-direction: column; }
+    .user-pagination-controls { width: 100%; justify-content: flex-start; }
+  }
+</style>
 </head>
 <body class="store-page">
 <div class="topbar">
@@ -292,6 +392,10 @@
         </select>
       </div>
       <div id="userList" class="user-list"><div class="order-skeleton" role="status" aria-label="Loading customers"><div class="loading-line tall"></div><div class="loading-line"></div></div></div>
+      <nav id="userPagination" class="user-pagination" aria-label="User list pages" hidden>
+        <span id="userPaginationStatus" class="user-pagination-status" aria-live="polite"></span>
+        <div id="userPaginationControls" class="user-pagination-controls"></div>
+      </nav>
     </div>
   </section>
 </main>
@@ -352,10 +456,15 @@ const globalCodeList = document.getElementById("globalCodeList");
 const userModal = document.getElementById("adminUserModal");
 const userModalTitle = document.getElementById("adminUserModalTitle");
 const userModalBody = document.getElementById("adminUserModalBody");
+const userPagination = document.getElementById("userPagination");
+const userPaginationStatus = document.getElementById("userPaginationStatus");
+const userPaginationControls = document.getElementById("userPaginationControls");
 const EMAIL_API_URL = window.TrendoraEmail?.functionUrl || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
 
 let users = [];
 let discounts = [];
+const usersPerPage = 8;
+let currentUserPage = 1;
 
 function generateCode(seed = "TRENDORA") {
   const clean = seed.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7) || "TREND";
@@ -664,6 +773,28 @@ function renderGlobalCodes() {
   bindCodeButtons(globalCodeList);
 }
 
+function getPageNumbers(currentPage, totalPages) {
+  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  const end = Math.min(totalPages, start + 4);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
+function renderUserPagination(totalUsers, totalPages, startIndex, endIndex) {
+  if (!totalUsers) {
+    userPagination.hidden = true;
+    return;
+  }
+
+  userPagination.hidden = false;
+  userPaginationStatus.textContent = `Showing ${startIndex}–${endIndex} of ${totalUsers} user${totalUsers === 1 ? "" : "s"}`;
+  const pages = getPageNumbers(currentUserPage, totalPages);
+  userPaginationControls.innerHTML = `
+    <button class="pagination-btn" type="button" data-page="${currentUserPage - 1}" ${currentUserPage === 1 ? "disabled" : ""}>Previous</button>
+    ${pages.map(page => `<button class="pagination-btn ${page === currentUserPage ? "active" : ""}" type="button" data-page="${page}" ${page === currentUserPage ? 'aria-current="page"' : ""}>${page}</button>`).join("")}
+    <button class="pagination-btn" type="button" data-page="${currentUserPage + 1}" ${currentUserPage === totalPages ? "disabled" : ""}>Next</button>
+  `;
+}
+
 function renderUsers() {
   const search = userSearch.value.trim().toLowerCase();
   const filter = discountFilter.value;
@@ -676,15 +807,24 @@ function renderUsers() {
     if (filter === "with" && !privateCodes.length) return false;
     if (filter === "without" && privateCodes.length) return false;
     return true;
+  }).sort((a, b) => {
+    const aLabel = a.name || a.email || a.uid || "";
+    const bLabel = b.name || b.email || b.uid || "";
+    return aLabel.localeCompare(bLabel, "en", { sensitivity: "base" });
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / usersPerPage));
+  currentUserPage = Math.min(currentUserPage, totalPages);
+  const startIndex = (currentUserPage - 1) * usersPerPage;
+  const visibleUsers = filtered.slice(startIndex, startIndex + usersPerPage);
+
   userList.innerHTML = filtered.length ? "" : '<div class="empty">No users match this search.</div>';
-  filtered.forEach(user => {
+  visibleUsers.forEach(user => {
     const privateCodes = discounts.filter(code => code.userUID === user.uid).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     const div = document.createElement("div");
     div.className = "user-card";
     div.innerHTML = `
-      <div>
+      <div class="user-profile">
         <h3>${escapeHtml(user.name || "Unnamed user")}</h3>
         <p><strong>Email:</strong> ${escapeHtml(user.email || "No email")}</p>
         <p><strong>Phone:</strong> ${escapeHtml(user.phone || "No phone")}</p>
@@ -708,7 +848,12 @@ function renderUsers() {
         </form>
         <button class="btn ghost wallet-history-btn viewWalletBtn" data-uid="${user.uid}" type="button">View wallet history</button>
       </div>
-      <form class="coupon-form privateCouponForm" data-uid="${user.uid}">
+      <div class="private-offer-panel">
+        <div class="private-offer-heading">
+          <strong>Create a private offer</strong>
+          <span>Set a personal discount for this customer.</span>
+        </div>
+        <form class="coupon-form privateCouponForm" data-uid="${user.uid}">
         <div class="field">
           <label>Code</label>
           <input name="code" value="${generateCode(user.name || user.email || "USER")}" maxlength="18">
@@ -736,14 +881,17 @@ function renderUsers() {
           <label>Expires On</label>
           <input name="expiresAt" type="date">
         </div>
-        <button class="btn" type="submit">Generate</button>
-      </form>
+          <button class="btn" type="submit">Generate</button>
+        </form>
+      </div>
       <div class="coupon-list">
         ${privateCodes.length ? privateCodes.map(code => renderCodeRow(code, user.uid)).join("") : '<div class="empty">No private discount code assigned yet.</div>'}
       </div>
     `;
     userList.appendChild(div);
   });
+
+  renderUserPagination(filtered.length, totalPages, startIndex + 1, startIndex + visibleUsers.length);
 
   userList.querySelectorAll(".privateCouponForm").forEach(form => {
     form.onsubmit = async event => {
@@ -853,8 +1001,21 @@ onSnapshot(collection(db, "discountCodes"), (snapshot) => {
   renderUsers();
 }, () => { globalCodeList.innerHTML = '<div class="empty">Could not load offers. Reload to try again.</div>'; });
 
-userSearch.addEventListener("input", renderUsers);
-discountFilter.addEventListener("change", renderUsers);
+function resetUserPagination() {
+  currentUserPage = 1;
+  renderUsers();
+}
+
+userPaginationControls.addEventListener("click", event => {
+  const button = event.target.closest("button[data-page]");
+  if (!button || button.disabled) return;
+  currentUserPage = Number(button.dataset.page);
+  renderUsers();
+  userList.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+userSearch.addEventListener("input", resetUserPagination);
+discountFilter.addEventListener("change", resetUserPagination);
 document.getElementById("closeUserModal").onclick = closeUserModal;
 userModal.addEventListener("click", event => {
   if (event.target === userModal) closeUserModal();
