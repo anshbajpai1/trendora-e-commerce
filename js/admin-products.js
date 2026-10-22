@@ -20,7 +20,7 @@ function deleteErrorMessage(error){
  return `Could not delete product: ${error?.message||'Unknown error'}`;
 }
 function preview(urls){previewURLs.forEach(URL.revokeObjectURL);previewURLs=[];$('preview').replaceChildren();for(const url of urls){const img=document.createElement('img');img.src=url;img.alt='Selected product photo';$('preview').appendChild(img);}$('preview').style.display=urls.length?'grid':'none';}
-function reset(){editingId=null;Object.values(fields).forEach(f=>f.type==='checkbox'?f.checked=false:f.value='');$('pimage').value='';preview([]);$('formTitle').textContent='Add product';$('addBtn').textContent='Add product';$('cancelEditBtn').hidden=true;}
+function reset(){editingId=null;Object.values(fields).forEach(f=>f.type==='checkbox'?f.checked=false:f.value='');$('pimage').value='';preview([]);$('formTitle').textContent='Add product';$('addBtn').innerHTML='<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Add Product';$('cancelEditBtn').hidden=true;}
 function edit(product){editingId=product.id;for(const [key,field] of Object.entries(fields)){if(field.type==='checkbox')field.checked=product[key]===true;else field.value=product[key]??'';}$('pimage').value='';preview(imagesFor(product));$('formTitle').textContent='Edit product';$('addBtn').textContent='Save changes';$('cancelEditBtn').hidden=false;message('Editing '+product.name+'. Existing photos stay unless you choose new ones.');fields.name.scrollIntoView({behavior:'smooth',block:'center'});fields.name.focus();}
 function getPageNumbers(currentPage,totalPages){
  const start=Math.max(1,Math.min(currentPage-2,totalPages-4));
