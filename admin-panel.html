@@ -79,9 +79,11 @@
   .preview-grid { display: none; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; margin-top: 10px; }
   .preview-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #eef0e6; }
   .product-list { display: grid; gap: 12px; }
-  .inventory-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:20px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
-  .inventory-pagination button { border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--primary); padding:8px 11px; font:600 11px inherit; cursor:pointer; }
-  .inventory-pagination button:hover:not(:disabled) { background:#f0f4e8; }
+  .inventory-pagination { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:20px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
+  .inventory-pagination__controls { display:flex; align-items:center; justify-content:flex-end; gap:6px; flex-wrap:wrap; }
+  .inventory-pagination button { min-width:36px; min-height:34px; border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--primary); padding:7px 10px; font:600 11px inherit; cursor:pointer; transition:.18s ease; }
+  .inventory-pagination button:hover:not(:disabled) { background:#f0f4e8; border-color:#c9d4ba; }
+  .inventory-pagination button.active { background:var(--primary); border-color:var(--primary); color:#fff; }
   .inventory-pagination button:disabled { opacity:.45; cursor:not-allowed; }
   .product-card { display: grid; grid-template-columns: 86px 1fr; gap: 13px; align-items: start; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fff; }
   .product-card img { width: 86px; height: 86px; object-fit: cover; border-radius: 8px; background: #eef0e6; }
@@ -111,6 +113,8 @@
     .product-card { grid-template-columns: 1fr; }
     .product-card img { width: 100%; height: 180px; }
     .product-dialog-body, .modal-form { grid-template-columns: 1fr; }
+    .inventory-pagination { align-items:flex-start; flex-direction:column; }
+    .inventory-pagination__controls { justify-content:flex-start; }
   }
 </style>
 <link rel="stylesheet" href="css/style.css">

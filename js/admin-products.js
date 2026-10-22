@@ -22,12 +22,18 @@ function deleteErrorMessage(error){
 function preview(urls){previewURLs.forEach(URL.revokeObjectURL);previewURLs=[];$('preview').replaceChildren();for(const url of urls){const img=document.createElement('img');img.src=url;img.alt='Selected product photo';$('preview').appendChild(img);}$('preview').style.display=urls.length?'grid':'none';}
 function reset(){editingId=null;Object.values(fields).forEach(f=>f.type==='checkbox'?f.checked=false:f.value='');$('pimage').value='';preview([]);$('formTitle').textContent='Add product';$('addBtn').textContent='Add product';$('cancelEditBtn').hidden=true;}
 function edit(product){editingId=product.id;for(const [key,field] of Object.entries(fields)){if(field.type==='checkbox')field.checked=product[key]===true;else field.value=product[key]??'';}$('pimage').value='';preview(imagesFor(product));$('formTitle').textContent='Edit product';$('addBtn').textContent='Save changes';$('cancelEditBtn').hidden=false;message('Editing '+product.name+'. Existing photos stay unless you choose new ones.');fields.name.scrollIntoView({behavior:'smooth',block:'center'});fields.name.focus();}
-function renderPagination(totalPages,totalItems){
+function getPageNumbers(currentPage,totalPages){
+ const start=Math.max(1,Math.min(currentPage-2,totalPages-4));
+ const end=Math.min(totalPages,start+4);
+ return Array.from({length:end-start+1},(_,index)=>start+index);
+}
+function renderPagination(totalPages,totalItems,startIndex,endIndex){
  const host=$('inventoryPagination');
  host.hidden=totalPages<=1;
  if(totalPages<=1){host.innerHTML='';return;}
- host.innerHTML=`<button type="button" data-page="prev" ${inventoryPage===1?'disabled':''}>← Previous</button><span>Page ${inventoryPage} of ${totalPages} · ${totalItems} products</span><button type="button" data-page="next" ${inventoryPage===totalPages?'disabled':''}>Next →</button>`;
- host.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{inventoryPage+=button.dataset.page==='next'?1:-1;render();host.scrollIntoView({block:'nearest'});});
+ const pages=getPageNumbers(inventoryPage,totalPages);
+ host.innerHTML=`<span>Showing ${startIndex}–${endIndex} of ${totalItems} products</span><div class="inventory-pagination__controls"><button type="button" data-page="${inventoryPage-1}" ${inventoryPage===1?'disabled':''}>Previous</button>${pages.map(page=>`<button type="button" data-page="${page}" class="${page===inventoryPage?'active':''}" ${page===inventoryPage?'aria-current="page"':''}>${page}</button>`).join('')}<button type="button" data-page="${inventoryPage+1}" ${inventoryPage===totalPages?'disabled':''}>Next</button></div>`;
+ host.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{if(button.disabled)return;inventoryPage=Number(button.dataset.page);render();$('productList').scrollIntoView({behavior:'smooth',block:'start'});});
 }
 function render(){
  const q=$('inventorySearch').value.trim().toLowerCase(),filter=$('inventoryFilter').value;
@@ -57,7 +63,7 @@ function render(){
  };
  $('productList').appendChild(row);
  }
- renderPagination(totalPages,list.length);
+ renderPagination(totalPages,list.length,start+1,Math.min(start+INVENTORY_PAGE_SIZE,list.length));
 }
 $('inventorySearch').addEventListener('input',()=>{inventoryPage=1;render();});$('inventoryFilter').addEventListener('change',()=>{inventoryPage=1;render();});$('cancelEditBtn').onclick=()=>{reset();message('Edit cancelled.');};
 $('pimage').addEventListener('change',()=>{preview([]);const files=[...$('pimage').files];if(files.length>6||files.some(f=>!f.type.startsWith('image/')||f.size>8*1024*1024)){message('Choose up to 6 images, no larger than 8 MB each.',true);$('pimage').value='';return;}const urls=files.map(URL.createObjectURL);preview(urls);previewURLs=urls;});
