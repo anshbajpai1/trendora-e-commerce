@@ -42,6 +42,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
   const shopCount = document.getElementById("shopCount");
   const sectionCount = document.getElementById("sectionCount");
   const pageLoader = document.getElementById("pageLoader");
+  const catalogPagination = document.getElementById("catalogPagination");
 
   // Auth modal elements
   const authModal = document.getElementById("authModal");
@@ -64,6 +65,8 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
   let catalogFallbackTimer = null;
   let catalogFallbackRequest = null;
   let activeCategory = "all";
+  let catalogPage = 1;
+  const CATALOG_PAGE_SIZE = 12;
   let pendingReturnUrl = null;
   const WISHLIST_KEY = "trendora-wishlist";
   const RECENT_KEY = "trendora-recent-products";
@@ -330,11 +333,30 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
     }
     return html;
   }
+  function getCatalogPageNumbers(currentPage, totalPages){
+    const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+    const end = Math.min(totalPages, start + 4);
+    return Array.from({length: end - start + 1}, (_, index) => start + index);
+  }
+  function renderCatalogPagination(totalItems, totalPages, startIndex, endIndex){
+    if(!catalogPagination) return;
+    if(totalPages <= 1){ catalogPagination.hidden = true; catalogPagination.innerHTML = ""; return; }
+    const pages = getCatalogPageNumbers(catalogPage, totalPages);
+    catalogPagination.hidden = false;
+    catalogPagination.innerHTML = `
+      <span class="catalog-pagination__status">Showing ${startIndex}–${endIndex} of ${totalItems} products</span>
+      <div class="catalog-pagination__controls">
+        <button type="button" data-catalog-page="${catalogPage - 1}" ${catalogPage === 1 ? "disabled" : ""}>Previous</button>
+        ${pages.map(page => `<button type="button" data-catalog-page="${page}" class="${page === catalogPage ? "active" : ""}" ${page === catalogPage ? 'aria-current="page"' : ""}>${page}</button>`).join("")}
+        <button type="button" data-catalog-page="${catalogPage + 1}" ${catalogPage === totalPages ? "disabled" : ""}>Next</button>
+      </div>`;
+  }
   function renderProducts(){
     const productsDiv = document.getElementById("products");
     if(!productsLoaded){
       productsDiv.setAttribute("aria-busy", "true");
       productsDiv.innerHTML = skeletonMarkup(8);
+      if(catalogPagination) catalogPagination.hidden = true;
       shopCount.textContent = "Loading collection…";
       sectionCount.textContent = "Loading collection…";
       return;
@@ -342,21 +364,27 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
     productsDiv.setAttribute("aria-busy", "false");
     if(productsError){
       productsDiv.innerHTML = '<div class="empty-state"><h4>We couldn’t load the collection</h4><p>Check your connection and try again.</p><button type="button" id="retryProducts">Try again</button></div>';
+      if(catalogPagination) catalogPagination.hidden = true;
       shopCount.textContent = "Collection unavailable";
       sectionCount.textContent = "";
       document.getElementById("retryProducts").onclick = () => { productsUnsubscribe?.(); productsUnsubscribe = null; productsLoaded = false; productsError = false; catalogFallbackRequest = null; renderProducts(); loadCatalogFallback(); loadProducts(); };
       return;
     }
     const products = getFilteredProducts();
+    const totalPages = Math.max(1, Math.ceil(products.length / CATALOG_PAGE_SIZE));
+    catalogPage = Math.min(catalogPage, totalPages);
+    const startIndex = (catalogPage - 1) * CATALOG_PAGE_SIZE;
+    const pageProducts = products.slice(startIndex, startIndex + CATALOG_PAGE_SIZE);
     productsDiv.innerHTML="";
     const countText = `${products.length} item${products.length === 1 ? "" : "s"} available`;
-    shopCount.textContent = countText;
+    shopCount.textContent = products.length ? `Showing ${startIndex + 1}–${startIndex + pageProducts.length} of ${countText}` : countText;
     sectionCount.textContent = countText;
     if(!products.length){
       productsDiv.innerHTML = `<div class="empty-state"><h4>No products found</h4><p>Try another search or reset your filters to explore the collection.</p></div>`;
+      renderCatalogPagination(0, 0, 0, 0);
       return;
     }
-    products.forEach((data)=>{
+    pageProducts.forEach((data)=>{
       const images = getProductImages(data);
       const primaryImage = images[0] || "";
       const thumbs = images.slice(0, 4);
@@ -390,6 +418,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
       div.querySelector(".addCartBtn").onclick=()=>addItemToCart(data.id,data.name,data.price,primaryImage,images,stock,data.deliveryCharge);
       div.querySelector(".save-product").onclick=()=>toggleSaved(data);
     });
+    renderCatalogPagination(products.length, totalPages, startIndex + 1, startIndex + pageProducts.length);
     renderPersonalRails();
   }
 
@@ -444,12 +473,20 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
 
   document.querySelector(".close-orders").onclick=()=>ordersModal.style.display="none";
 
-  productSearch.addEventListener("input", renderProducts);
-  productFilter.addEventListener("change", renderProducts);
-  productSort.addEventListener("change", renderProducts);
+  function resetCatalogPagination(){ catalogPage = 1; renderProducts(); }
+  catalogPagination?.addEventListener("click", event => {
+    const button = event.target.closest("button[data-catalog-page]");
+    if(!button || button.disabled) return;
+    catalogPage = Number(button.dataset.catalogPage);
+    renderProducts();
+    document.getElementById("collection")?.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+  productSearch.addEventListener("input", resetCatalogPagination);
+  productFilter.addEventListener("change", resetCatalogPagination);
+  productSort.addEventListener("change", resetCatalogPagination);
   document.getElementById("resetFiltersBtn").onclick = () => {
     productSearch.value = ""; productFilter.value = "all"; productSort.value = "latest"; activeCategory = "all"; renderCategories();
-    renderProducts();
+    resetCatalogPagination();
   };
   document.getElementById("clearSavedBtn")?.addEventListener("click", () => { writeProductIds(WISHLIST_KEY, []); renderProducts(); renderPersonalRails(); showNotification("Saved products cleared"); });
 
@@ -481,7 +518,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
       button.textContent = category === "all" ? "All products" : category;
       button.className = "category-tab";
       button.setAttribute("aria-pressed", String(category === activeCategory));
-      button.onclick = () => { activeCategory = category; renderCategories(); renderProducts(); };
+      button.onclick = () => { activeCategory = category; catalogPage = 1; renderCategories(); renderProducts(); };
       host.appendChild(button);
     });
   }
