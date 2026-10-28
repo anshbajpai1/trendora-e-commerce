@@ -628,6 +628,14 @@ async function placeOrder() {
     // Refresh stale cart prices before committing; customer reviews any changed total.
     const latestItems=await Promise.all(cart.map(async item=>{const snap=await getDoc(doc(db,"products",item.id));if(!snap.exists())throw new Error(`${item.name} is no longer available.`);return {...item,price:Number(snap.data().price),name:snap.data().name||item.name,deliveryCharge:Math.max(0,Number(snap.data().deliveryCharge)||0)};}));
     if(latestItems.some((item,i)=>item.price!==cart[i].price||item.deliveryCharge!==Number(cart[i].deliveryCharge||0))){cart=latestItems;localStorage.setItem("cart",JSON.stringify(cart));loadCart();throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again.");}
+    if(paymentMethod === "WALLET") {
+      const walletSnap = await getDoc(doc(db,"users",currentUser.uid));
+      const availableBalance = Math.max(0, Number(walletSnap.data()?.walletBalance || 0));
+      walletBalance = availableBalance;
+      document.getElementById("walletBalanceTag").textContent = formatCurrency(availableBalance);
+      document.getElementById("walletBalanceHelp").textContent = formatCurrency(availableBalance);
+      if(availableBalance < finalTotal) throw new Error(`Insufficient Trendora Wallet balance. Available: ${formatCurrency(availableBalance)}. Order total: ${formatCurrency(finalTotal)}. Please add funds or select another payment method.`);
+    }
     const adminUID = "REPLACE_WITH_ADMIN_UID";
     const { orderId, orderRef } = await createNumericOrderRef(adminUID);
     const placedAt = new Date();
