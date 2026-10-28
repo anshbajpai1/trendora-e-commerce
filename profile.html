@@ -166,11 +166,12 @@
     }
 
     .address-item {
-      display: grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:start;
-      margin:12px 0; padding:16px; border:1px solid #dfe5d6; border-radius:10px; background:#fbfcf8;
+      display: grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:start;
+      margin:14px 0; padding:20px; border:1px solid #e1e6d9; border-radius:14px; background:#fff;
+      box-shadow:0 8px 22px rgba(52,64,40,.05);
       min-width: 0;
     }
-    .address-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.address-fields textarea{grid-column:1/-1;min-height:74px}.address-fields .full{grid-column:1/-1}.address-fields label{margin:0;font-size:12px;display:flex;align-items:center;gap:7px}.address-fields label input{width:auto;margin:0}.address-item button{background:#fff;color:#a33d35;border:1px solid #efc7c3;padding:9px 11px}.address-item button:hover{background:#fff1f0}
+    .address-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.address-fields:before{content:"DELIVERY ADDRESS";grid-column:1/-1;font-size:10px;font-weight:800;letter-spacing:.12em;color:#819072}.address-fields input,.address-fields select,.address-fields textarea{margin:0;padding:12px 13px;border:1px solid #dde4d3;border-radius:8px;background:#fafcf7;font-size:13px}.address-fields input:focus,.address-fields select:focus,.address-fields textarea:focus{background:#fff;border-color:#526b3d;box-shadow:0 0 0 3px rgba(82,107,61,.12)}.address-fields textarea{grid-column:1/-1;min-height:82px}.address-fields .full{grid-column:1/-1}.address-fields label{margin:2px 0 0;padding:11px 12px;border-radius:8px;background:#f1f6ea;font-size:12px;font-weight:700;color:#4e633b;display:flex;align-items:center;gap:8px}.address-fields label input{width:17px;margin:0;accent-color:#526b3d}.address-item button{align-self:start;background:#fff;color:#a33d35;border:1px solid #f0d3cf;padding:9px 11px;border-radius:7px;font-size:11px}.address-item button:hover{background:#fff1f0}
 
     #addAddressBtn {
       background: #135c3b;
