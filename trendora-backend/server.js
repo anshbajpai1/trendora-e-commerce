@@ -9,68 +9,72 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Only trust proxy-provided client IPs when the deployment explicitly enables it.
+// This prevents callers from spoofing X-Forwarded-For in local/direct deployments.
+app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
-// Email endpoints are a common abuse target. This lightweight limiter is deliberately
-// dependency-free so it also works in the current deployment. Use a shared store
-// (Redis, etc.) if the backend is later scaled across multiple processes.
-const requestWindows = new Map();
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const RATE_LIMIT_MAX_REQUESTS = 8;
-
 function clientKey(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  return (Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown").split(",")[0].trim();
+  return String(req.ip || req.socket?.remoteAddress || "unknown");
 }
 
-function notificationRateLimit(req, res, next) {
-  const now = Date.now();
-  const key = clientKey(req);
-  const record = requestWindows.get(key);
-  if (!record || now >= record.resetAt) {
-    requestWindows.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+// Kept dependency-free for this deployment. Replace this store with Redis/Upstash
+// before horizontally scaling, so limits remain shared between instances.
+function createSlidingWindowLimiter({ windowMs, max, key, message, maxKeys = 10_000 }) {
+  const buckets = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const bucketKey = key(req);
+    const cutoff = now - windowMs;
+    const hits = (buckets.get(bucketKey) || []).filter(hit => hit > cutoff);
+    const resetAt = (hits[0] || now) + windowMs;
+    const retryAfter = Math.max(1, Math.ceil((resetAt - now) / 1000));
+    res.set({
+      "RateLimit-Limit": String(max),
+      "RateLimit-Remaining": String(Math.max(0, max - hits.length - 1)),
+      "RateLimit-Reset": String(retryAfter)
+    });
+    if (hits.length >= max) {
+      res.set("Retry-After", String(retryAfter));
+      return res.status(429).json({ success: false, message, retryAfter });
+    }
+    hits.push(now);
+    buckets.set(bucketKey, hits);
+    if (buckets.size > maxKeys) {
+      for (const [storedKey, storedHits] of buckets) {
+        if (!storedHits.some(hit => hit > cutoff) || buckets.size > maxKeys) buckets.delete(storedKey);
+        if (buckets.size <= maxKeys) break;
+      }
+    }
     return next();
-  }
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    res.set("Retry-After", String(Math.ceil((record.resetAt - now) / 1000)));
-    return res.status(429).json({ success: false, message: "Too many email requests. Please try again later." });
-  }
-  record.count += 1;
-  return next();
+  };
 }
 
-const paymentWindows = new Map();
-const PAYMENT_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const PAYMENT_LIMIT_MAX_REQUESTS = 12;
+const notificationRateLimit = createSlidingWindowLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  key: req => `email-ip:${clientKey(req)}`,
+  message: "Too many email requests. Please try again later."
+});
+const recipientRateLimit = createSlidingWindowLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  key: req => `email-recipient:${String(req.body?.to || req.body?.email || "unknown").trim().toLowerCase()}`,
+  message: "Too many messages have been sent to this email address. Please try again later."
+});
+const paymentRateLimit = createSlidingWindowLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: 8,
+  key: req => `payment:${clientKey(req)}`,
+  message: "Too many payment attempts. Please wait before trying again."
+});
 const pendingRazorpayOrders = new Map();
 
-function paymentRateLimit(req, res, next) {
-  const now = Date.now();
-  const key = clientKey(req);
-  const record = paymentWindows.get(key);
-  if (!record || now >= record.resetAt) {
-    paymentWindows.set(key, { count: 1, resetAt: now + PAYMENT_LIMIT_WINDOW_MS });
-    return next();
-  }
-  if (record.count >= PAYMENT_LIMIT_MAX_REQUESTS) {
-    res.set("Retry-After", String(Math.ceil((record.resetAt - now) / 1000)));
-    return res.status(429).json({ success: false, message: "Too many payment attempts. Please wait before trying again." });
-  }
-  record.count += 1;
-  return next();
-}
-
 setInterval(() => {
   const now = Date.now();
-  for (const [key, record] of requestWindows) if (now >= record.resetAt) requestWindows.delete(key);
-}, RATE_LIMIT_WINDOW_MS).unref();
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of paymentWindows) if (now >= record.resetAt) paymentWindows.delete(key);
   for (const [orderId, order] of pendingRazorpayOrders) if (now >= order.expiresAt) pendingRazorpayOrders.delete(orderId);
-}, PAYMENT_LIMIT_WINDOW_MS).unref();
+}, 10 * 60 * 1000).unref();
 
 const money = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -256,7 +260,7 @@ app.get("/health", (req, res) => {
   res.json({ success: true, message: "Trendora email backend is running" });
 });
 
-app.post("/send-notification", notificationRateLimit, async (req, res) => {
+app.post("/send-notification", notificationRateLimit, recipientRateLimit, async (req, res) => {
   try {
     const info = await sendTrendoraEmail(req.body);
     res.json({ success: true, message: "Email sent successfully", id: info.messageId });
@@ -266,7 +270,7 @@ app.post("/send-notification", notificationRateLimit, async (req, res) => {
   }
 });
 
-app.post("/send-email", notificationRateLimit, async (req, res) => {
+app.post("/send-email", notificationRateLimit, recipientRateLimit, async (req, res) => {
   try {
     const { email, orderId, name } = req.body;
     const payload = {

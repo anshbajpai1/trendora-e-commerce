@@ -1,20 +1,23 @@
 import { corsHeaders } from "../_shared/cors.ts";
 
-const rateLimitWindowMs = 15 * 60 * 1000;
-const rateLimitMaxRequests = 8;
-const requestWindows = new Map<string, { count: number; resetAt: number }>();
+const ipRateLimitWindowMs = 15 * 60 * 1000;
+const ipRateLimitMaxRequests = 5;
+const recipientRateLimitWindowMs = 60 * 60 * 1000;
+const recipientRateLimitMaxRequests = 3;
+const requestWindows = new Map<string, number[]>();
 
 const money = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR"
 });
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       ...corsHeaders,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...headers
     }
   });
 }
@@ -23,17 +26,27 @@ function clientKey(req: Request) {
   return (req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown").split(",")[0].trim();
 }
 
-function isRateLimited(req: Request) {
+function rateLimit(key: string, maxRequests: number, windowMs: number) {
   const now = Date.now();
-  const key = clientKey(req);
-  const record = requestWindows.get(key);
-  if (!record || now >= record.resetAt) {
-    requestWindows.set(key, { count: 1, resetAt: now + rateLimitWindowMs });
-    return false;
+  const cutoff = now - windowMs;
+  const hits = (requestWindows.get(key) || []).filter(hit => hit > cutoff);
+  const resetAt = (hits[0] || now) + windowMs;
+  const retryAfter = Math.max(1, Math.ceil((resetAt - now) / 1000));
+  const headers = {
+    "RateLimit-Limit": String(maxRequests),
+    "RateLimit-Remaining": String(Math.max(0, maxRequests - hits.length - 1)),
+    "RateLimit-Reset": String(retryAfter)
+  };
+  if (hits.length >= maxRequests) return { limited: true, retryAfter, headers };
+  hits.push(now);
+  requestWindows.set(key, hits);
+  if (requestWindows.size > 10_000) {
+    for (const [storedKey, storedHits] of requestWindows) {
+      if (!storedHits.some(hit => hit > cutoff) || requestWindows.size > 10_000) requestWindows.delete(storedKey);
+      if (requestWindows.size <= 10_000) break;
+    }
   }
-  if (record.count >= rateLimitMaxRequests) return true;
-  record.count += 1;
-  return false;
+  return { limited: false, retryAfter, headers };
 }
 
 function escapeHtml(value = "") {
@@ -158,10 +171,6 @@ function buildMessage(type: string, payload: Record<string, unknown>) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ success: false, message: "Method not allowed" }, 405);
-  // This protects warm edge isolates. For a strict global limit, place a shared
-  // rate limiter in front of the function as well.
-  if (isRateLimited(req)) return jsonResponse({ success: false, message: "Too many email requests. Please try again later." }, 429);
-
   try {
     const brevoApiKey = Deno.env.get("BREVO_API_KEY");
     const senderEmail = Deno.env.get("MAIL_FROM_EMAIL");
@@ -172,6 +181,13 @@ Deno.serve(async (req) => {
     if (!to || !type) throw new Error("Missing recipient or email type");
     if (!/^\S+@\S+\.\S+$/.test(String(to)) || String(to).length > 254) throw new Error("A valid recipient email is required");
     if (!["order-confirmation", "order-cancelled", "discount-code"].includes(type)) throw new Error("Unsupported email type");
+
+    // These limits protect warm edge isolates. Configure a shared WAF/Redis
+    // limiter at the edge as well before scaling this function horizontally.
+    const ipLimit = rateLimit(`ip:${clientKey(req)}`, ipRateLimitMaxRequests, ipRateLimitWindowMs);
+    if (ipLimit.limited) return jsonResponse({ success: false, message: "Too many email requests. Please try again later.", retryAfter: ipLimit.retryAfter }, 429, { ...ipLimit.headers, "Retry-After": String(ipLimit.retryAfter) });
+    const recipientLimit = rateLimit(`recipient:${String(to).trim().toLowerCase()}`, recipientRateLimitMaxRequests, recipientRateLimitWindowMs);
+    if (recipientLimit.limited) return jsonResponse({ success: false, message: "Too many messages have been sent to this email address. Please try again later.", retryAfter: recipientLimit.retryAfter }, 429, { ...recipientLimit.headers, "Retry-After": String(recipientLimit.retryAfter) });
 
     const message = buildMessage(type, payload);
     const brevoResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
