@@ -33,7 +33,7 @@
     const title = backdrop.querySelector('h2');
     const message = backdrop.querySelector('p');
     const actions = backdrop.querySelector('.trendora-dialog__actions');
-    const inferTone = text => /failed|unable|could not|error|invalid|please allow|not found|attention/i.test(text) ? 'error' : /empty|enter|required|valid|try again/i.test(text) ? 'warning' : 'success';
+    const inferTone = text => /failed|unable|could not|error|invalid|insufficient|please allow|not found|attention/i.test(text) ? 'error' : /empty|enter|required|valid|try again/i.test(text) ? 'warning' : 'success';
 
     function close(result) {
       if (!active) return;
