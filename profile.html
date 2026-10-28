@@ -166,18 +166,11 @@
     }
 
     .address-item {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 9px;
-      align-items: center;
-      margin-bottom: 10px;
+      display: grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:start;
+      margin:12px 0; padding:16px; border:1px solid #dfe5d6; border-radius:10px; background:#fbfcf8;
       min-width: 0;
     }
-
-    .address-item button {
-      background: #c24135;
-      padding: 10px 12px;
-    }
+    .address-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.address-fields textarea{grid-column:1/-1;min-height:74px}.address-fields .full{grid-column:1/-1}.address-fields label{margin:0;font-size:12px;display:flex;align-items:center;gap:7px}.address-fields label input{width:auto;margin:0}.address-item button{background:#fff;color:#a33d35;border:1px solid #efc7c3;padding:9px 11px}.address-item button:hover{background:#fff1f0}
 
     #addAddressBtn {
       background: #135c3b;
@@ -358,6 +351,8 @@
         grid-template-columns: 1fr;
       }
 
+      .address-fields { grid-template-columns: 1fr; }
+
       .address-item button {
         width: 100%;
       }
@@ -494,7 +489,8 @@
       const address = typeof value === "string" ? { address: value } : (value || {});
       const div = document.createElement("div");
       div.className = "address-item";
-      div.innerHTML = `<div class="address-fields"><input data-address-field="label" placeholder="Label (Home, Work)" value="${String(address.label || "Home").replace(/"/g, "&quot;")}"><input data-address-field="recipientName" placeholder="Recipient name" value="${String(address.recipientName || "").replace(/"/g, "&quot;")}"><input data-address-field="phone" placeholder="10-digit mobile" value="${String(address.phone || "").replace(/"/g, "&quot;")}"><textarea data-address-field="address" placeholder="House / street / locality">${address.address || ""}</textarea><input data-address-field="city" placeholder="City" value="${String(address.city || "").replace(/"/g, "&quot;")}"><input data-address-field="state" placeholder="State" value="${String(address.state || "").replace(/"/g, "&quot;")}"><input data-address-field="pinCode" placeholder="PIN code" value="${String(address.pinCode || "").replace(/"/g, "&quot;")}"><label><input type="radio" name="defaultAddress" data-address-field="isDefault" ${address.isDefault ? "checked" : ""}> Default address</label></div>`;
+      const states = ["Andhra Pradesh","Delhi","Gujarat","Karnataka","Maharashtra","Rajasthan","Tamil Nadu","Telangana","Uttar Pradesh","West Bengal","Other"];
+      div.innerHTML = `<div class="address-fields"><select data-address-field="label"><option ${address.label === "Home" ? "selected" : ""}>Home</option><option ${address.label === "Work" ? "selected" : ""}>Work</option><option ${address.label === "Other" ? "selected" : ""}>Other</option></select><input data-address-field="recipientName" placeholder="Recipient name" value="${String(address.recipientName || "").replace(/"/g, "&quot;")}"><input data-address-field="phone" placeholder="10-digit mobile" inputmode="numeric" value="${String(address.phone || "").replace(/"/g, "&quot;")}"><input data-address-field="pinCode" placeholder="PIN code" inputmode="numeric" value="${String(address.pinCode || "").replace(/"/g, "&quot;")}"><textarea class="full" data-address-field="address" placeholder="Flat / house no., street, locality">${address.address || ""}</textarea><input data-address-field="city" placeholder="City" value="${String(address.city || "").replace(/"/g, "&quot;")}"><select data-address-field="state"><option value="">Select state</option>${states.map(state => `<option ${address.state === state ? "selected" : ""}>${state}</option>`).join("")}</select><label class="full"><input type="radio" name="defaultAddress" data-address-field="isDefault" ${address.isDefault ? "checked" : ""}> Set as default delivery address</label></div>`;
       const delBtn = document.createElement("button");
       delBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Delete';
       delBtn.type = "button";
