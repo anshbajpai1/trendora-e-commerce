@@ -578,6 +578,14 @@ function formatOrderDateTime(order){
   if(!raw) return "Not available";
   return raw.toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"});
 }
+function formatDate(value){
+  const raw = value?.toDate ? value.toDate()
+    : value?.seconds ? new Date(value.seconds * 1000)
+    : value ? new Date(value) : null;
+  return raw && !Number.isNaN(raw.getTime())
+    ? raw.toLocaleDateString("en-IN", { dateStyle:"medium" })
+    : "Not available";
+}
 function getOrderMillis(o){
   if(Number(o.orderPlacedAtMs)) return Number(o.orderPlacedAtMs);
   if(o.timestamp?.toDate) return o.timestamp.toDate().getTime();
