@@ -1,255 +1,597 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trendora - My Profile</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: Inter, "Segoe UI", sans-serif; background: #faf9f6; color: #303829; overflow-x: hidden; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 16px 28px; background: #fff; border-bottom: 1px solid #e0e3d7; }
-  .topbar h1 { margin: 0; font-size: 24px; }
-  .topbar a { color: #455336; text-decoration: none; font-weight: 800; }
-  .page { width: min(1080px, calc(100% - 32px)); margin: 38px auto 58px; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(330px, .92fr); gap: 22px; align-items: start; min-width: 0; }
-  .panel { background: #fff; border: 1px solid #e0e3d7; border-radius: 8px; box-shadow: 0 12px 30px rgba(22,32,51,0.08); overflow: hidden; }
-  .panel-head { padding: 18px 20px; border-bottom: 1px solid #e0e3d7; }
-  .panel-head h2 { margin: 0; color: #455336; font-size: 19px; }
-  .panel-head p { margin: 5px 0 0; color: #7b826f; font-size: 14px; }
-  .panel-body { padding: 20px; }
-  label { display: block; margin: 14px 0 7px; font-weight: 700; color: #515c43; font-size: 13px; }
-  input { width: 100%; min-width: 0; padding: 12px; border-radius: 8px; border: 1px solid #e0e3d7; outline: none; font: inherit; }
-  input:focus { border-color: #455336; box-shadow: 0 0 0 3px rgba(36,87,214,0.12); }
-  input:disabled { background: #eef0e6; color: #7b826f; cursor: not-allowed; }
-  button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; border: 0; border-radius: 8px; background: #455336; color: #fff; padding: 12px 15px; font: inherit; font-weight: 800; cursor: pointer; transition: 0.18s ease; }
-  button:hover { background: #303c24; transform: translateY(-1px); }
-  button.loading { pointer-events: none; opacity: 0.78; }
-  button.loading::before { content: ""; width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
-  .icon { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
-  #saveProfileBtn { width: 100%; margin-top: 18px; }
-  .addresses { margin-top: 18px; padding-top: 6px; }
-  .address-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: center; margin-bottom: 10px; min-width: 0; }
-  .address-item button { background: #c24135; padding: 10px 12px; }
-  #addAddressBtn { background: #135c3b; margin-top: 6px; }
-  #profileForm { opacity: 0; transition: opacity 0.35s ease-in-out; }
-  #loadingSpinner { text-align: center; padding: 50px 20px; color: #455336; font-weight: 700; }
-  .spinner-border { display: inline-block; width: 30px; height: 30px; border: 4px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .profile-intro { grid-column:1/-1; display:flex; justify-content:space-between; align-items:end; gap:18px; padding:0 4px 4px; }
-  .profile-intro p { margin:0 0 5px; color:#728061; font-size:11px; font-weight:800; letter-spacing:.13em; }
-  .profile-intro h1 { margin:0; color:#35412a; font-size:34px; letter-spacing:-.04em; }
-  .profile-intro a { color:#52643c; font-size:13px; font-weight:800; text-decoration:none; }
-  .wallet-panel { background:#3d4931; color:#fff; border:0; box-shadow:0 18px 44px rgba(54,68,39,.18); }
-  .wallet-panel .panel-head { border-color:rgba(255,255,255,.14); }
-  .wallet-panel .panel-head h2 { color:#f4f7eb; }
-  .wallet-panel .panel-head p { color:#c8d3b8; }
-  .wallet-body { padding:28px 24px 24px; }
-  .wallet-label { color:#c9d6b7; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
-  .wallet-balance { margin:8px 0 5px; color:#fff; font-size:43px; font-weight:800; letter-spacing:-.05em; }
-  .wallet-note { margin:0; color:#d3ddc6; font-size:13px; line-height:1.55; max-width:420px; }
-  .wallet-actions { display:flex; gap:10px; margin-top:25px; flex-wrap:wrap; }
-  .wallet-actions a { padding:11px 14px; border-radius:6px; background:#e1e8cd; color:#35432a; text-decoration:none; font-size:13px; font-weight:800; }
-  .wallet-actions a.secondary { background:transparent; color:#edf3e2; border:1px solid rgba(255,255,255,.27); }
-  .wallet-points { margin-top:25px; padding-top:18px; border-top:1px solid rgba(255,255,255,.15); display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
-  .wallet-points strong,.wallet-points span { display:block; }.wallet-points strong { font-size:13px; }.wallet-points span { font-size:11px; color:#cbd6bd; margin-top:3px; line-height:1.45; }
-  @media (max-width: 820px) { .page { grid-template-columns: 1fr; width: min(100% - 20px, 1000px); } .topbar { padding: 14px 16px; } }
-  @media (max-width: 520px) {
-    .panel-body { padding: 16px; }
-    .address-item { grid-template-columns: 1fr; }
-    .address-item button { width: 100%; }
-    .profile-intro { align-items:flex-start; flex-direction:column; }
-  }
-</style>
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/storefront.css">
-<link rel="stylesheet" href="css/profile.css">
-<script src="js/experience.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trendora - My Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: #faf9f6;
+      color: #303829;
+      overflow-x: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 28px;
+      background: #fff;
+      border-bottom: 1px solid #e0e3d7;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .topbar a {
+      color: #455336;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .page {
+      width: min(1080px, calc(100% - 32px));
+      margin: 38px auto 58px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(330px, .92fr);
+      gap: 22px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #e0e3d7;
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(22, 32, 51, 0.08);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid #e0e3d7;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      color: #455336;
+      font-size: 19px;
+    }
+
+    .panel-head p {
+      margin: 5px 0 0;
+      color: #7b826f;
+      font-size: 14px;
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 7px;
+      font-weight: 700;
+      color: #515c43;
+      font-size: 13px;
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e0e3d7;
+      outline: none;
+      font: inherit;
+    }
+
+    input:focus {
+      border-color: #455336;
+      box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.12);
+    }
+
+    input:disabled {
+      background: #eef0e6;
+      color: #7b826f;
+      cursor: not-allowed;
+    }
+
+    button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 8px;
+      background: #455336;
+      color: #fff;
+      padding: 12px 15px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    button:hover {
+      background: #303c24;
+      transform: translateY(-1px);
+    }
+
+    button.loading {
+      pointer-events: none;
+      opacity: 0.78;
+    }
+
+    button.loading::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }
+
+    #saveProfileBtn {
+      width: 100%;
+      margin-top: 18px;
+    }
+
+    .addresses {
+      margin-top: 18px;
+      padding-top: 6px;
+    }
+
+    .address-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      margin-bottom: 10px;
+      min-width: 0;
+    }
+
+    .address-item button {
+      background: #c24135;
+      padding: 10px 12px;
+    }
+
+    #addAddressBtn {
+      background: #135c3b;
+      margin-top: 6px;
+    }
+
+    #profileForm {
+      opacity: 0;
+      transition: opacity 0.35s ease-in-out;
+    }
+
+    #loadingSpinner {
+      text-align: center;
+      padding: 50px 20px;
+      color: #455336;
+      font-weight: 700;
+    }
+
+    .spinner-border {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 4px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .profile-intro {
+      grid-column: 1/-1;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 18px;
+      padding: 0 4px 4px;
+    }
+
+    .profile-intro p {
+      margin: 0 0 5px;
+      color: #728061;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .13em;
+    }
+
+    .profile-intro h1 {
+      margin: 0;
+      color: #35412a;
+      font-size: 34px;
+      letter-spacing: -.04em;
+    }
+
+    .profile-intro a {
+      color: #52643c;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .wallet-panel {
+      background: #3d4931;
+      color: #fff;
+      border: 0;
+      box-shadow: 0 18px 44px rgba(54, 68, 39, .18);
+    }
+
+    .wallet-panel .panel-head {
+      border-color: rgba(255, 255, 255, .14);
+    }
+
+    .wallet-panel .panel-head h2 {
+      color: #f4f7eb;
+    }
+
+    .wallet-panel .panel-head p {
+      color: #c8d3b8;
+    }
+
+    .wallet-body {
+      padding: 28px 24px 24px;
+    }
+
+    .wallet-label {
+      color: #c9d6b7;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .wallet-balance {
+      margin: 8px 0 5px;
+      color: #fff;
+      font-size: 43px;
+      font-weight: 800;
+      letter-spacing: -.05em;
+    }
+
+    .wallet-note {
+      margin: 0;
+      color: #d3ddc6;
+      font-size: 13px;
+      line-height: 1.55;
+      max-width: 420px;
+    }
+
+    .wallet-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .wallet-actions a {
+      padding: 11px 14px;
+      border-radius: 6px;
+      background: #e1e8cd;
+      color: #35432a;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .wallet-actions a.secondary {
+      background: transparent;
+      color: #edf3e2;
+      border: 1px solid rgba(255, 255, 255, .27);
+    }
+
+    .wallet-points {
+      margin-top: 25px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, .15);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .wallet-points strong,
+    .wallet-points span {
+      display: block;
+    }
+
+    .wallet-points strong {
+      font-size: 13px;
+    }
+
+    .wallet-points span {
+      font-size: 11px;
+      color: #cbd6bd;
+      margin-top: 3px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        grid-template-columns: 1fr;
+        width: min(100% - 20px, 1000px);
+      }
+
+      .topbar {
+        padding: 14px 16px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .panel-body {
+        padding: 16px;
+      }
+
+      .address-item {
+        grid-template-columns: 1fr;
+      }
+
+      .address-item button {
+        width: 100%;
+      }
+
+      .profile-intro {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <script src="js/experience.js" defer></script>
 </head>
+
 <body class="store-page">
-<header class="topbar">
-  <h1>My Profile</h1>
-  <a href="index.html">Home</a>
-</header>
+  <header class="topbar">
+    <h1>My Profile</h1>
+    <a href="index.html">Home</a>
+  </header>
 
-<main class="page">
-  <div class="profile-intro"><div><p>YOUR TRENDORA ACCOUNT</p><h1>Profile &amp; Wallet</h1></div><a href="orders.html">View my orders ↗</a></div>
-
-  <section class="panel wallet-panel">
-    <div class="panel-head"><h2>Trendora Wallet</h2><p>Your store credit, ready when you are.</p></div>
-    <div class="wallet-body"><span class="wallet-label">Your current wallet balance</span><p class="wallet-balance is-loading" id="walletBalance" role="status" aria-live="polite"><span class="wallet-spinner" aria-hidden="true"></span><span class="wallet-loader-copy"><strong>Fetching your balance</strong><small>Your store credit is being secured</small></span></p><p class="wallet-note">Use your full available balance at checkout for a faster, seamless payment.</p><div class="wallet-actions"><a href="checkout.html">Use wallet at checkout ↗</a><a class="secondary" href="wallet-transactions.html">View wallet transactions</a></div><div class="wallet-points"><div><strong>Secure store credit</strong><span>Refunds approved for Wallet appear here.</span></div><div><strong>No expiry shown</strong><span>Your available credit stays ready for checkout.</span></div></div></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Account Details</h2>
-      <p>Keep your delivery details updated for faster checkout.</p>
+  <main class="page">
+    <div class="profile-intro">
+      <div>
+        <p>YOUR TRENDORA ACCOUNT</p>
+        <h1>Profile &amp; Wallet</h1>
+      </div><a href="orders.html">View my orders ↗</a>
     </div>
-    <div class="panel-body">
-      <div id="loadingSpinner">
-        <div role="status" aria-label="Loading profile"><div class="loading-line short"></div><div class="loading-line tall"></div><div class="loading-line short"></div><div class="loading-line tall"></div></div>
-        <p>Loading profile...</p>
+
+    <section class="panel wallet-panel">
+      <div class="panel-head">
+        <h2>Trendora Wallet</h2>
+        <p>Your store credit, ready when you are.</p>
       </div>
+      <div class="wallet-body"><span class="wallet-label">Your current wallet balance</span>
+        <p class="wallet-balance is-loading" id="walletBalance" role="status" aria-live="polite"><span
+            class="wallet-spinner" aria-hidden="true"></span><span class="wallet-loader-copy"><strong>Fetching your
+              balance</strong><small>Your store credit is being secured</small></span></p>
+        <p class="wallet-note">Use your full available balance at checkout for a faster, seamless payment.</p>
+        <div class="wallet-actions"><a href="checkout.html">Use wallet at checkout ↗</a><a class="secondary"
+            href="wallet-transactions.html">View wallet transactions</a></div>
+        <div class="wallet-points">
+          <div><strong>Secure store credit</strong><span>Refunds approved for Wallet appear here.</span></div>
+          <div><strong>No expiry shown</strong><span>Your available credit stays ready for checkout.</span></div>
+        </div>
+      </div>
+    </section>
 
-      <div id="profileForm">
-        <label for="name">Full Name</label>
-        <input type="text" id="name" placeholder="Enter your name">
-
-        <label for="email">Email</label>
-        <input type="email" id="email" disabled>
-
-        <label for="phone">Phone Number</label>
-        <input type="text" id="phone" placeholder="Enter your phone number">
-
-        <div class="addresses">
-          <label>Delivery Addresses</label>
-          <div id="addressList"></div>
-          <button type="button" id="addAddressBtn">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-            Add Address
-          </button>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Account Details</h2>
+        <p>Keep your delivery details updated for faster checkout.</p>
+      </div>
+      <div class="panel-body">
+        <div id="loadingSpinner">
+          <div role="status" aria-label="Loading profile">
+            <div class="loading-line short"></div>
+            <div class="loading-line tall"></div>
+            <div class="loading-line short"></div>
+            <div class="loading-line tall"></div>
+          </div>
+          <p>Loading profile...</p>
         </div>
 
-        <button id="saveProfileBtn">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
-          Save Profile
-        </button>
+        <div id="profileForm">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" placeholder="Enter your name">
+
+          <label for="email">Email</label>
+          <input type="email" id="email" disabled>
+
+          <label for="phone">Phone Number</label>
+          <input type="text" id="phone" placeholder="Enter your phone number">
+
+          <div class="addresses">
+            <label>Delivery Addresses</label>
+            <div id="addressList"></div>
+            <button type="button" id="addAddressBtn">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+              Add Address
+            </button>
+          </div>
+
+          <button id="saveProfileBtn">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <path d="M17 21v-8H7v8" />
+              <path d="M7 3v5h8" />
+            </svg>
+            Save Profile
+          </button>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-</main>
+  </main>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, updateProfile, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, updateProfile, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
-  authDomain: "trendora-1cd23.firebaseapp.com",
-  projectId: "trendora-1cd23",
-  storageBucket: "trendora-1cd23.firebasestorage.app",
-  messagingSenderId: "1080352553475",
-  appId: "1:1080352553475:web:850319561617a21fdfec36"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+      authDomain: "trendora-1cd23.firebaseapp.com",
+      projectId: "trendora-1cd23",
+      storageBucket: "trendora-1cd23.firebasestorage.app",
+      messagingSenderId: "1080352553475",
+      appId: "1:1080352553475:web:850319561617a21fdfec36"
+    };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-await setPersistence(auth, browserLocalPersistence);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    await setPersistence(auth, browserLocalPersistence);
 
-let currentUser = null;
-const addressList = document.getElementById("addressList");
-const nameInput = document.getElementById("name");
-const emailInput = document.getElementById("email");
-const phoneInput = document.getElementById("phone");
-const profileForm = document.getElementById("profileForm");
-const loadingSpinner = document.getElementById("loadingSpinner");
+    let currentUser = null;
+    const addressList = document.getElementById("addressList");
+    const nameInput = document.getElementById("name");
+    const emailInput = document.getElementById("email");
+    const phoneInput = document.getElementById("phone");
+    const profileForm = document.getElementById("profileForm");
+    const loadingSpinner = document.getElementById("loadingSpinner");
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value || 0));
-}
+    function formatCurrency(value) {
+      return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value || 0));
+    }
 
-function createAddressInput(value = "") {
-  const div = document.createElement("div");
-  div.className = "address-item";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.placeholder = "Enter full address";
-  input.value = value;
-  const delBtn = document.createElement("button");
-  delBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Delete';
-  delBtn.type = "button";
-  delBtn.onclick = () => div.remove();
-  div.appendChild(input);
-  div.appendChild(delBtn);
-  addressList.appendChild(div);
-}
+    function createAddressInput(value = "") {
+      const address = typeof value === "string" ? { address: value } : (value || {});
+      const div = document.createElement("div");
+      div.className = "address-item";
+      div.innerHTML = `<div class="address-fields"><input data-address-field="label" placeholder="Label (Home, Work)" value="${String(address.label || "Home").replace(/"/g, "&quot;")}"><input data-address-field="recipientName" placeholder="Recipient name" value="${String(address.recipientName || "").replace(/"/g, "&quot;")}"><input data-address-field="phone" placeholder="10-digit mobile" value="${String(address.phone || "").replace(/"/g, "&quot;")}"><textarea data-address-field="address" placeholder="House / street / locality">${address.address || ""}</textarea><input data-address-field="city" placeholder="City" value="${String(address.city || "").replace(/"/g, "&quot;")}"><input data-address-field="state" placeholder="State" value="${String(address.state || "").replace(/"/g, "&quot;")}"><input data-address-field="pinCode" placeholder="PIN code" value="${String(address.pinCode || "").replace(/"/g, "&quot;")}"><label><input type="radio" name="defaultAddress" data-address-field="isDefault" ${address.isDefault ? "checked" : ""}> Default address</label></div>`;
+      const delBtn = document.createElement("button");
+      delBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Delete';
+      delBtn.type = "button";
+      delBtn.onclick = () => div.remove();
+      div.appendChild(delBtn);
+      addressList.appendChild(div);
+    }
 
-function showProfileContent() {
-  loadingSpinner.style.display = "none";
-  profileForm.style.opacity = "1";
-}
+    function showProfileContent() {
+      loadingSpinner.style.display = "none";
+      profileForm.style.opacity = "1";
+    }
 
-onAuthStateChanged(auth, async user => {
-  if (!user) {
-    window.location.href = "login.html?returnUrl=profile.html";
-    return;
-  }
-  currentUser = user;
-  emailInput.value = user.email || "";
-  try {
-    const userSnap = await getDoc(doc(db, "users", user.uid));
-    const profileSnap = await getDoc(doc(db, "users", user.uid, "profile", "info"));
-    const rootData = userSnap.exists() ? userSnap.data() : {};
-    const nestedData = profileSnap.exists() ? profileSnap.data() : {};
-    const data = { ...nestedData, ...rootData };
-    const walletBalance = document.getElementById("walletBalance");
-    walletBalance.textContent = formatCurrency(Math.max(0, Number(data.walletBalance || 0)));
-    walletBalance.classList.remove("is-loading");
-    addressList.innerHTML = "";
-    nameInput.value = data.name || data.fullName || user.displayName || "";
-    emailInput.value = data.email || user.email || "";
-    phoneInput.value = data.phone || data.phoneNumber || "";
-    const addresses = Array.isArray(data.addresses) ? data.addresses : [];
-    if (addresses.length) addresses.forEach(addr => createAddressInput(typeof addr === "string" ? addr : addr.address || ""));
-    else createAddressInput(data.address || "");
-  } catch (err) {
-    console.error("Error fetching profile:", err);
-    const walletBalance = document.getElementById("walletBalance");
-    walletBalance.textContent = "Balance unavailable";
-    walletBalance.classList.remove("is-loading");
-    alert("Failed to load profile data.");
-  } finally {
-    showProfileContent();
-  }
-});
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        window.location.href = "login.html?returnUrl=profile.html";
+        return;
+      }
+      currentUser = user;
+      emailInput.value = user.email || "";
+      try {
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        const profileSnap = await getDoc(doc(db, "users", user.uid, "profile", "info"));
+        const rootData = userSnap.exists() ? userSnap.data() : {};
+        const nestedData = profileSnap.exists() ? profileSnap.data() : {};
+        const data = { ...nestedData, ...rootData };
+        const walletBalance = document.getElementById("walletBalance");
+        walletBalance.textContent = formatCurrency(Math.max(0, Number(data.walletBalance || 0)));
+        walletBalance.classList.remove("is-loading");
+        addressList.innerHTML = "";
+        nameInput.value = data.name || data.fullName || user.displayName || "";
+        emailInput.value = data.email || user.email || "";
+        phoneInput.value = data.phone || data.phoneNumber || "";
+        const addresses = Array.isArray(data.addresses) ? data.addresses : [];
+        if (addresses.length) addresses.forEach(createAddressInput);
+        else createAddressInput(data.address || "");
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        const walletBalance = document.getElementById("walletBalance");
+        walletBalance.textContent = "Balance unavailable";
+        walletBalance.classList.remove("is-loading");
+        alert("Failed to load profile data.");
+      } finally {
+        showProfileContent();
+      }
+    });
 
-document.getElementById("addAddressBtn").addEventListener("click", () => createAddressInput());
+    document.getElementById("addAddressBtn").addEventListener("click", () => createAddressInput());
 
-document.getElementById("saveProfileBtn").addEventListener("click", async () => {
-  const saveBtn = document.getElementById("saveProfileBtn");
-  if (!currentUser) {
-    alert("User not logged in.");
-    return;
-  }
-  const name = nameInput.value.trim();
-  const phone = phoneInput.value.trim();
-  if (!name) {
-    alert("Full name is required.");
-    return;
-  }
-  if (!/^[0-9]{10}$/.test(phone)) {
-    alert("Please enter a valid 10-digit phone number.");
-    return;
-  }
-  const addresses = Array.from(addressList.querySelectorAll("input")).map(input => input.value.trim()).filter(Boolean);
-  try {
-    saveBtn.classList.add("loading");
-    saveBtn.disabled = true;
-    await setDoc(doc(db, "users", currentUser.uid), {
-      name,
-      phone,
-      email: currentUser.email,
-      addresses
-    }, { merge: true });
-    await setDoc(doc(db, "users", currentUser.uid, "profile", "info"), {
-      name,
-      phone,
-      email: currentUser.email,
-      addresses
-    }, { merge: true });
-    if (currentUser.displayName !== name) await updateProfile(currentUser, { displayName: name });
-    alert("Profile saved successfully.");
-  } catch (err) {
-    console.error("Error saving profile:", err);
-    alert("Error saving profile. Please try again.");
-  } finally {
-    saveBtn.classList.remove("loading");
-    saveBtn.disabled = false;
-  }
-});
-</script>
-<script src="js/main.js" defer></script>
+    document.getElementById("saveProfileBtn").addEventListener("click", async () => {
+      const saveBtn = document.getElementById("saveProfileBtn");
+      if (!currentUser) {
+        alert("User not logged in.");
+        return;
+      }
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.trim();
+      if (!name) {
+        alert("Full name is required.");
+        return;
+      }
+      if (!/^[0-9]{10}$/.test(phone)) {
+        alert("Please enter a valid 10-digit phone number.");
+        return;
+      }
+      const addresses = Array.from(addressList.querySelectorAll(".address-item")).map((item, index) => {
+        const value = field => item.querySelector(`[data-address-field="${field}"]`)?.value.trim() || "";
+        return { id: crypto.randomUUID?.() || String(Date.now() + index), label: value("label") || "Home", recipientName: value("recipientName") || name, phone: value("phone") || phone, address: value("address"), city: value("city"), state: value("state"), pinCode: value("pinCode"), isDefault: item.querySelector('[data-address-field="isDefault"]')?.checked || false };
+      }).filter(address => address.address.length >= 8);
+      if (addresses.length && !addresses.some(address => address.isDefault)) addresses[0].isDefault = true;
+      try {
+        saveBtn.classList.add("loading");
+        saveBtn.disabled = true;
+        await setDoc(doc(db, "users", currentUser.uid), {
+          name,
+          phone,
+          email: currentUser.email,
+          addresses
+        }, { merge: true });
+        await setDoc(doc(db, "users", currentUser.uid, "profile", "info"), {
+          name,
+          phone,
+          email: currentUser.email,
+          addresses
+        }, { merge: true });
+        if (currentUser.displayName !== name) await updateProfile(currentUser, { displayName: name });
+        alert("Profile saved successfully.");
+      } catch (err) {
+        console.error("Error saving profile:", err);
+        alert("Error saving profile. Please try again.");
+      } finally {
+        saveBtn.classList.remove("loading");
+        saveBtn.disabled = false;
+      }
+    });
+  </script>
+  <script src="js/main.js" defer></script>
 </body>
+
 </html>

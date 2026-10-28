@@ -1,356 +1,768 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trendora - Checkout</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Inter, "Segoe UI", sans-serif; background: #faf9f6; color: #303829; padding: 0; }
-  .checkout-shell { width: min(1040px, calc(100% - 44px)); margin: 22px auto 0; }
-  .topline { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 18px; }
-  h1 { font-size: 30px; letter-spacing: 0; }
-  h2 { color: #455336; margin-bottom: 15px; font-size: 19px; }
-  .home-link { color: #455336; text-decoration: none; font-weight: 800; }
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: start; }
-  .section { background: #fff; padding: 22px; margin-bottom: 18px; border-radius: 8px; border: 1px solid #e0e3d7; box-shadow: 0 12px 30px rgba(22,32,51,0.08); }
-  .cart-item { border-bottom: 1px solid #edf0e5; padding: 12px 0; display: flex; justify-content: space-between; gap: 14px; font-size: 15px; }
-  .cart-item:last-child { border-bottom: none; }
-  .summary-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .summary-item img { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; background: #eef0e6; flex: 0 0 auto; }
-  .summary-item span { overflow-wrap: anywhere; }
-  .delivery-line { display:block; margin-top:3px; color:#7e896e; font-size:11px; }
-  label { font-weight: 700; margin-top: 12px; display: block; color: #515c43; font-size: 13px; }
-  input, textarea, select { display: block; width: 100%; margin: 9px 0 12px; padding: 12px; border: 1px solid #e0e3d7; border-radius: 8px; font-size: 15px; outline: none; }
-  input:focus, textarea:focus, select:focus { border-color: #455336; box-shadow: 0 0 0 3px rgba(36,87,214,0.12); }
-  textarea { min-height: 94px; resize: vertical; }
-  .saved-addresses { display: grid; gap: 10px; margin: 10px 0 12px; }
-  .address-card {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 10px;
-    align-items: start;
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #e0e3d7;
-    border-radius: 8px;
-    background: #f8f9f3;
-    color: #303829;
-    text-align: left;
-    cursor: pointer;
-  }
-  .address-card:hover { border-color: #455336; background: #eff2e7; transform: none; }
-  .address-card.active { border-color: #455336; box-shadow: 0 0 0 3px rgba(36,87,214,0.12); background: #eff2e7; }
-  .address-card input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: #455336; }
-  .address-card strong { display: block; margin-bottom: 3px; font-size: 13px; color: #455336; }
-  .address-card span { display: block; color: #6e785f; line-height: 1.4; overflow-wrap: anywhere; }
-  .address-empty { margin: 8px 0 12px; padding: 12px; border: 1px dashed #e0e3d7; border-radius: 8px; color: #7b826f; background: #fff; font-size: 14px; }
-  button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 13px 16px; cursor: pointer; background: #455336; border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 800; transition: 0.18s ease; }
-  button:hover { background: #303c24; transform: translateY(-1px); }
-  button:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-  #placeOrderBtn { width: 100%; min-height: 50px; }
-  .loader { border: 3px solid rgba(255,255,255,0.45); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: none; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .discount-box { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
-  .discount-box input { margin: 0; text-transform: uppercase; }
-  .discount-box button { min-width: 120px; }
-  .discount-help { margin-top: 10px; color: #7b826f; font-size: 14px; }
-  .discount-success { color: #138a55; font-weight: 800; margin-top: 10px; font-size: 14px; }
-  .discount-error { color: #c24135; font-weight: 800; margin-top: 10px; font-size: 14px; }
-  .applied-coupon { display: none; margin-top: 14px; padding: 12px; border-radius: 8px; background: #eef8f2; border: 1px solid #bfe8cf; color: #135c3b; font-size: 14px; }
-  .applied-coupon button { margin-top: 10px; padding: 9px 12px; background: #135c3b; }
-  .offer-list { display: grid; gap: 8px; margin: 0 0 14px; }
-  .offer-chip { width: 100%; padding: 10px 11px; justify-content: space-between; background: #f4f7ed; color: #3d4d2d; border: 1px solid #dce5ce; text-align: left; font-size: 12px; }
-  .offer-chip:hover { background: #e9efdc; }
-  .offer-chip strong { font-size: 12px; letter-spacing: .04em; }
-  .offer-chip span { color: #6e785f; font-weight: 600; }
-  .offer-loading { display: block; color: #7b826f; font-size: 12px; padding: 8px 0; }
-  .total-breakdown { display: grid; gap: 10px; }
-  .total-breakdown div { display: flex; justify-content: space-between; gap: 14px; color: #6e785f; }
-  .total-breakdown .payable { font-size: 19px; color: #111827; font-weight: 800; border-top: 1px solid #e5e7eb; padding-top: 12px; }
-  .empty { color: #7b826f; }
-  .payment-methods { display: grid; gap: 10px; }
-  .payment-option {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 13px;
-    margin: 0;
-    padding: 16px;
-    border: 1px solid #dce2d3;
-    border-radius: 6px;
-    background: #fff;
-    cursor: pointer;
-    transition: border-color .18s ease, background .18s ease;
-  }
-  .payment-option:hover { border-color: #7a8960; background: #f8f9f4; }
-  .payment-option.is-selected { border-color: #455336; background: #f3f6eb; box-shadow: inset 0 0 0 1px #455336; }
-  .payment-option input { width: 18px; height: 18px; margin: 0; accent-color: #455336; }
-  .payment-option__mark { width: 38px; height: 38px; display: grid; place-items: center; background: #e6ecd9; color: #405033; font-size: 15px; font-weight: 800; border-radius: 5px; }
-  .payment-option__copy { min-width: 0; }
-  .payment-option__copy strong, .payment-option__copy small { display: block; }
-  .payment-option__copy strong { color: #334028; font-size: 14px; }
-  .payment-option__copy small { margin-top: 3px; color: #727c67; font-size: 12px; line-height: 1.45; }
-  .payment-option__tag { color: #61714a; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-align: right; }
-  .trendora-pay-details { margin-top: 12px; padding: 14px; border-left: 3px solid #6d7e52; background: #f6f8f1; color: #566047; font-size: 13px; line-height: 1.55; }
-  .trendora-pay-details strong { color: #34422c; }
-  .payment-reference { margin-top: 4px; }
-  .payment-reference[hidden], .trendora-pay-details[hidden] { display: none; }
-  @media (max-width: 860px) {
-    .checkout-shell { width: min(100% - 24px, 1040px); margin-top: 14px; }
-    .layout { grid-template-columns: 1fr; }
-    .discount-box { grid-template-columns: 1fr; }
-    .discount-box button { width: 100%; }
-    .topline { align-items: flex-start; flex-direction: column; }
-    h1 { font-size: 25px; }
-    .section { padding: 17px; }
-    .cart-item { align-items: flex-start; flex-direction: column; }
-    .cart-item strong { align-self: flex-end; }
-  }
-</style>
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/storefront.css">
-<script src="js/experience.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trendora - Checkout</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: #faf9f6;
+      color: #303829;
+      padding: 0;
+    }
+
+    .checkout-shell {
+      width: min(1040px, calc(100% - 44px));
+      margin: 22px auto 0;
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      color: #455336;
+      margin-bottom: 15px;
+      font-size: 19px;
+    }
+
+    .home-link {
+      color: #455336;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .section {
+      background: #fff;
+      padding: 22px;
+      margin-bottom: 18px;
+      border-radius: 8px;
+      border: 1px solid #e0e3d7;
+      box-shadow: 0 12px 30px rgba(22, 32, 51, 0.08);
+    }
+
+    .cart-item {
+      border-bottom: 1px solid #edf0e5;
+      padding: 12px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      font-size: 15px;
+    }
+
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .summary-item img {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #eef0e6;
+      flex: 0 0 auto;
+    }
+
+    .summary-item span {
+      overflow-wrap: anywhere;
+    }
+
+    .delivery-line {
+      display: block;
+      margin-top: 3px;
+      color: #7e896e;
+      font-size: 11px;
+    }
+
+    label {
+      font-weight: 700;
+      margin-top: 12px;
+      display: block;
+      color: #515c43;
+      font-size: 13px;
+    }
+
+    input,
+    textarea,
+    select {
+      display: block;
+      width: 100%;
+      margin: 9px 0 12px;
+      padding: 12px;
+      border: 1px solid #e0e3d7;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #455336;
+      box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.12);
+    }
+
+    textarea {
+      min-height: 94px;
+      resize: vertical;
+    }
+
+    .saved-addresses {
+      display: grid;
+      gap: 10px;
+      margin: 10px 0 12px;
+    }
+
+    .address-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e0e3d7;
+      border-radius: 8px;
+      background: #f8f9f3;
+      color: #303829;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .address-card:hover {
+      border-color: #455336;
+      background: #eff2e7;
+      transform: none;
+    }
+
+    .address-card.active {
+      border-color: #455336;
+      box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.12);
+      background: #eff2e7;
+    }
+
+    .address-card input {
+      width: 18px;
+      height: 18px;
+      margin: 2px 0 0;
+      accent-color: #455336;
+    }
+
+    .address-card strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
+      color: #455336;
+    }
+
+    .address-card span {
+      display: block;
+      color: #6e785f;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .address-empty {
+      margin: 8px 0 12px;
+      padding: 12px;
+      border: 1px dashed #e0e3d7;
+      border-radius: 8px;
+      color: #7b826f;
+      background: #fff;
+      font-size: 14px;
+    }
+
+    button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 16px;
+      cursor: pointer;
+      background: #455336;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      transition: 0.18s ease;
+    }
+
+    button:hover {
+      background: #303c24;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #placeOrderBtn {
+      width: 100%;
+      min-height: 50px;
+    }
+
+    .loader {
+      border: 3px solid rgba(255, 255, 255, 0.45);
+      border-top: 3px solid #fff;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .discount-box {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .discount-box input {
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    .discount-box button {
+      min-width: 120px;
+    }
+
+    .discount-help {
+      margin-top: 10px;
+      color: #7b826f;
+      font-size: 14px;
+    }
+
+    .discount-success {
+      color: #138a55;
+      font-weight: 800;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .discount-error {
+      color: #c24135;
+      font-weight: 800;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .applied-coupon {
+      display: none;
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #eef8f2;
+      border: 1px solid #bfe8cf;
+      color: #135c3b;
+      font-size: 14px;
+    }
+
+    .applied-coupon button {
+      margin-top: 10px;
+      padding: 9px 12px;
+      background: #135c3b;
+    }
+
+    .offer-list {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+
+    .offer-chip {
+      width: 100%;
+      padding: 10px 11px;
+      justify-content: space-between;
+      background: #f4f7ed;
+      color: #3d4d2d;
+      border: 1px solid #dce5ce;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .offer-chip:hover {
+      background: #e9efdc;
+    }
+
+    .offer-chip strong {
+      font-size: 12px;
+      letter-spacing: .04em;
+    }
+
+    .offer-chip span {
+      color: #6e785f;
+      font-weight: 600;
+    }
+
+    .offer-loading {
+      display: block;
+      color: #7b826f;
+      font-size: 12px;
+      padding: 8px 0;
+    }
+
+    .total-breakdown {
+      display: grid;
+      gap: 10px;
+    }
+
+    .total-breakdown div {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      color: #6e785f;
+    }
+
+    .total-breakdown .payable {
+      font-size: 19px;
+      color: #111827;
+      font-weight: 800;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
+    }
+
+    .empty {
+      color: #7b826f;
+    }
+
+    .payment-methods {
+      display: grid;
+      gap: 10px;
+    }
+
+    .payment-option {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 13px;
+      margin: 0;
+      padding: 16px;
+      border: 1px solid #dce2d3;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease;
+    }
+
+    .payment-option:hover {
+      border-color: #7a8960;
+      background: #f8f9f4;
+    }
+
+    .payment-option.is-selected {
+      border-color: #455336;
+      background: #f3f6eb;
+      box-shadow: inset 0 0 0 1px #455336;
+    }
+
+    .payment-option input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      accent-color: #455336;
+    }
+
+    .payment-option__mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      background: #e6ecd9;
+      color: #405033;
+      font-size: 15px;
+      font-weight: 800;
+      border-radius: 5px;
+    }
+
+    .payment-option__copy {
+      min-width: 0;
+    }
+
+    .payment-option__copy strong,
+    .payment-option__copy small {
+      display: block;
+    }
+
+    .payment-option__copy strong {
+      color: #334028;
+      font-size: 14px;
+    }
+
+    .payment-option__copy small {
+      margin-top: 3px;
+      color: #727c67;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .payment-option__tag {
+      color: #61714a;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+
+    .trendora-pay-details {
+      margin-top: 12px;
+      padding: 14px;
+      border-left: 3px solid #6d7e52;
+      background: #f6f8f1;
+      color: #566047;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .trendora-pay-details strong {
+      color: #34422c;
+    }
+
+    .payment-reference {
+      margin-top: 4px;
+    }
+
+    .payment-reference[hidden],
+    .trendora-pay-details[hidden] {
+      display: none;
+    }
+
+    @media (max-width: 860px) {
+      .checkout-shell {
+        width: min(100% - 24px, 1040px);
+        margin-top: 14px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .discount-box {
+        grid-template-columns: 1fr;
+      }
+
+      .discount-box button {
+        width: 100%;
+      }
+
+      .topline {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .section {
+        padding: 17px;
+      }
+
+      .cart-item {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .cart-item strong {
+        align-self: flex-end;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/storefront.css">
+  <script src="js/experience.js" defer></script>
 </head>
+
 <body class="store-page">
-<main class="checkout-shell">
-  <div class="topline">
-    <h1>Checkout</h1>
-    <a class="home-link" href="index.html">Continue Shopping</a>
-  </div>
-
-  <div class="layout">
-    <div>
-      <section class="section">
-        <h2>Customer Details</h2>
-        <label for="custName">Full Name</label>
-        <input type="text" id="custName" placeholder="Full Name" required>
-        <label for="custPhone">Phone Number</label>
-        <input type="text" id="custPhone" placeholder="Phone Number" required pattern="[0-9]{10}">
-        <label for="custAddress">Delivery Address</label>
-        <div id="savedAddresses" class="saved-addresses"></div>
-        <textarea id="custAddress" placeholder="Delivery Address" required></textarea>
-      </section>
-
-      <section class="section" aria-labelledby="paymentTitle">
-        <h2 id="paymentTitle">Choose how you’d like to pay</h2>
-        <div class="payment-methods" role="radiogroup" aria-label="Payment method">
-          <label class="payment-option" data-payment-option="TRENDORA_PAY">
-            <input type="radio" name="paymentMethod" value="TRENDORA_PAY" aria-describedby="trendoraPayHelp">
-            <span class="payment-option__mark" aria-hidden="true">T</span>
-            <span class="payment-option__copy"><strong>Trendora Pay</strong><small>Pay securely with UPI, cards, netbanking and other methods.</small></span>
-            <span class="payment-option__tag">Secure</span>
-          </label>
-          <label class="payment-option" data-payment-option="WALLET">
-            <input type="radio" name="paymentMethod" value="WALLET" aria-describedby="walletHelp">
-            <span class="payment-option__mark" aria-hidden="true">W</span>
-            <span class="payment-option__copy"><strong>Trendora Wallet</strong><small>Use your available wallet credit for this order.</small></span>
-            <span class="payment-option__tag" id="walletBalanceTag">Loading</span>
-          </label>
-          <label class="payment-option is-selected" data-payment-option="COD">
-            <input type="radio" name="paymentMethod" value="COD" checked>
-            <span class="payment-option__mark" aria-hidden="true">₹</span>
-            <span class="payment-option__copy"><strong>Cash on Delivery</strong><small>Pay when your shipment is delivered to your address.</small></span>
-            <span class="payment-option__tag">Pay later</span>
-          </label>
-        </div>
-        <div id="trendoraPayHelp" class="trendora-pay-details" hidden><strong>Secure payment by Razorpay.</strong> Select Trendora Pay and continue to a secure Razorpay checkout, where you can choose UPI, card or netbanking. Trendora never receives your card or bank credentials.</div>
-        <div id="walletHelp" class="trendora-pay-details" hidden><strong>Pay with your store credit.</strong> Your current Trendora Wallet balance is <span id="walletBalanceHelp">₹0.00</span>. Wallet payment is available only when the balance covers the entire order.</div>
-      </section>
+  <main class="checkout-shell">
+    <div class="topline">
+      <h1>Checkout</h1>
+      <a class="home-link" href="index.html">Continue Shopping</a>
     </div>
 
-    <aside>
-      <section class="section">
-        <h2>Order Summary</h2>
-        <div id="cartItems"></div>
-        <div id="total" style="margin-top:15px;"></div>
-      </section>
+    <div class="layout">
+      <div>
+        <section class="section">
+          <h2>Customer Details</h2>
+          <label for="custName">Full Name</label>
+          <input type="text" id="custName" placeholder="Full Name" required>
+          <label for="custPhone">Phone Number</label>
+          <input type="text" id="custPhone" placeholder="Phone Number" required pattern="[0-9]{10}">
+          <label for="custAddress">Delivery Address</label>
+          <div id="savedAddresses" class="saved-addresses"></div>
+          <textarea id="custAddress" placeholder="Delivery Address" required></textarea>
+        </section>
 
-      <section class="section">
-        <h2>Offers & coupon</h2>
-        <p class="discount-help" style="margin:0 0 12px">Apply an eligible offer before choosing your payment method.</p>
-        <div id="offerList" class="offer-list" aria-live="polite"><span class="offer-loading">Checking available offers…</span></div>
-        <div class="discount-box">
-          <input type="text" id="discountCode" placeholder="Enter coupon code">
-          <button id="applyDiscountBtn" type="button">Apply</button>
-        </div>
-        <p id="discountMessage" class="discount-help">Use a code assigned to your account.</p>
-        <div id="appliedCoupon" class="applied-coupon"></div>
-      </section>
+        <section class="section" aria-labelledby="paymentTitle">
+          <h2 id="paymentTitle">Choose how you’d like to pay</h2>
+          <div class="payment-methods" role="radiogroup" aria-label="Payment method">
+            <label class="payment-option" data-payment-option="TRENDORA_PAY">
+              <input type="radio" name="paymentMethod" value="TRENDORA_PAY" aria-describedby="trendoraPayHelp">
+              <span class="payment-option__mark" aria-hidden="true">T</span>
+              <span class="payment-option__copy"><strong>Trendora Pay</strong><small>Pay securely with UPI, cards,
+                  netbanking and other methods.</small></span>
+              <span class="payment-option__tag">Secure</span>
+            </label>
+            <label class="payment-option" data-payment-option="WALLET">
+              <input type="radio" name="paymentMethod" value="WALLET" aria-describedby="walletHelp">
+              <span class="payment-option__mark" aria-hidden="true">W</span>
+              <span class="payment-option__copy"><strong>Trendora Wallet</strong><small>Use your available wallet credit
+                  for this order.</small></span>
+              <span class="payment-option__tag" id="walletBalanceTag">Loading</span>
+            </label>
+            <label class="payment-option is-selected" data-payment-option="COD">
+              <input type="radio" name="paymentMethod" value="COD" checked>
+              <span class="payment-option__mark" aria-hidden="true">₹</span>
+              <span class="payment-option__copy"><strong>Cash on Delivery</strong><small>Pay when your shipment is
+                  delivered to your address.</small></span>
+              <span class="payment-option__tag">Pay later</span>
+            </label>
+          </div>
+          <div id="trendoraPayHelp" class="trendora-pay-details" hidden><strong>Secure payment by Razorpay.</strong>
+            Select Trendora Pay and continue to a secure Razorpay checkout, where you can choose UPI, card or
+            netbanking. Trendora never receives your card or bank credentials.</div>
+          <div id="walletHelp" class="trendora-pay-details" hidden><strong>Pay with your store credit.</strong> Your
+            current Trendora Wallet balance is <span id="walletBalanceHelp">₹0.00</span>. Wallet payment is available
+            only when the balance covers the entire order.</div>
+        </section>
+      </div>
 
-      <button id="placeOrderBtn">
-        <span class="loader" id="loader"></span>
-        Place Order
-      </button>
-    </aside>
-  </div>
-</main>
+      <aside>
+        <section class="section">
+          <h2>Order Summary</h2>
+          <div id="cartItems"></div>
+          <div id="total" style="margin-top:15px;"></div>
+        </section>
 
-<script src="js/email-config.js"></script>
-<script src="js/payment-config.js"></script>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script type="module">
-import { normalizeCart, escapeHTML, discountFor } from "./js/commerce.mjs";
-import { createOrderWithInventory } from "./js/checkout-order.js";
-import { updateOrderAtomic } from "./js/order-transactions.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, setPersistence, browserLocalPersistence, onIdTokenChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        <section class="section">
+          <h2>Offers & coupon</h2>
+          <p class="discount-help" style="margin:0 0 12px">Apply an eligible offer before choosing your payment method.
+          </p>
+          <div id="offerList" class="offer-list" aria-live="polite"><span class="offer-loading">Checking available
+              offers…</span></div>
+          <div class="discount-box">
+            <input type="text" id="discountCode" placeholder="Enter coupon code">
+            <button id="applyDiscountBtn" type="button">Apply</button>
+          </div>
+          <p id="discountMessage" class="discount-help">Use a code assigned to your account.</p>
+          <div id="appliedCoupon" class="applied-coupon"></div>
+        </section>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
-  authDomain: "trendora-1cd23.firebaseapp.com",
-  projectId: "trendora-1cd23",
-  storageBucket: "trendora-1cd23.appspot.com",
-  messagingSenderId: "1080352553475",
-  appId: "1:1080352553475:web:850319561617a21fdfec36"
-};
+        <button id="placeOrderBtn">
+          <span class="loader" id="loader"></span>
+          Place Order
+        </button>
+      </aside>
+    </div>
+  </main>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+  <script src="js/email-config.js"></script>
+  <script src="js/payment-config.js"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script type="module">
+    import { normalizeCart, escapeHTML, discountFor } from "./js/commerce.mjs";
+    import { createOrderWithInventory } from "./js/checkout-order.js";
+    import { updateOrderAtomic } from "./js/order-transactions.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, setPersistence, browserLocalPersistence, onIdTokenChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-let currentUser = null;
-let cart = normalizeCart(localStorage.getItem("cart") || "[]");
-let checkoutInProgress = false;
-let appliedDiscount = null;
-let subtotal = 0;
-let deliveryAmount = 0;
-let discountAmount = 0;
-let finalTotal = 0;
-let savedAddresses = [];
-let selectedPaymentMethod = "COD";
-let walletBalance = 0;
+    const firebaseConfig = {
+      apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
+      authDomain: "trendora-1cd23.firebaseapp.com",
+      projectId: "trendora-1cd23",
+      storageBucket: "trendora-1cd23.appspot.com",
+      messagingSenderId: "1080352553475",
+      appId: "1:1080352553475:web:850319561617a21fdfec36"
+    };
 
-function syncPaymentMethod(method) {
-  selectedPaymentMethod = method;
-  document.querySelectorAll("[data-payment-option]").forEach(option => {
-    const selected = option.dataset.paymentOption === method;
-    option.classList.toggle("is-selected", selected);
-    const input = option.querySelector("input");
-    if (input) input.checked = selected;
-  });
-  const directPayment = method === "TRENDORA_PAY";
-  document.getElementById("trendoraPayHelp").hidden = !directPayment;
-  document.getElementById("walletHelp").hidden = method !== "WALLET";
-}
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-function offerText(code) { return code.type === "flat" ? `${formatCurrency(code.amount)} off` : `${Number(code.amount || 0)}% off`; }
-async function loadEligibleOffers() {
-  const host = document.getElementById("offerList");
-  if (!currentUser) { host.innerHTML = '<span class="offer-loading">Log in to see your offers.</span>'; return; }
-  try {
-    const snapshot = await getDocs(collection(db, "discountCodes"));
-    const today = new Date();
-    const offers = snapshot.docs.map(item => ({ id:item.id, ...item.data() })).filter(code => {
-      const expired = code.expiresAt && new Date(code.expiresAt + "T23:59:59") < today;
-      const exhausted = Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses);
-      return code.status !== "disabled" && !expired && !exhausted && (!code.userUID || code.userUID === currentUser.uid);
-    }).slice(0, 4);
-    host.innerHTML = offers.length ? offers.map(code => `<button type="button" class="offer-chip" data-code="${escapeHTML(code.code || code.id)}"><strong>${escapeHTML(code.code || code.id)}</strong><span>${offerText(code)}${Number(code.minOrder || 0) ? ` · on orders over ${formatCurrency(code.minOrder)}` : ""}</span></button>`).join("") : '<span class="offer-loading">No eligible offers right now. You can still enter a code below.</span>';
-    host.querySelectorAll("[data-code]").forEach(button => button.onclick = () => { document.getElementById("discountCode").value = button.dataset.code; applyDiscountCode(); });
-  } catch { host.innerHTML = '<span class="offer-loading">Enter a coupon code below to apply it.</span>'; }
-}
+    let currentUser = null;
+    let cart = normalizeCart(localStorage.getItem("cart") || "[]");
+    let checkoutInProgress = false;
+    let appliedDiscount = null;
+    let subtotal = 0;
+    let deliveryAmount = 0;
+    let discountAmount = 0;
+    let finalTotal = 0;
+    let savedAddresses = [];
+    let selectedPaymentMethod = "COD";
+    let walletBalance = 0;
 
-await setPersistence(auth, browserLocalPersistence);
-
-onIdTokenChanged(auth, async (user) => {
-  currentUser = user;
-  if (!user) {
-    const showCheckoutLogin = () => window.TrendoraAuth?.openAuthModal({ mode: "login", returnUrl: "checkout.html" });
-    if (window.TrendoraAuth) showCheckoutLogin();
-    else setTimeout(showCheckoutLogin, 500);
-    return;
-  }
-  currentUser = user;
-  try {
-    const profileSnap = await getDoc(doc(db, "users", user.uid));
-    const nestedProfileSnap = await getDoc(doc(db, "users", user.uid, "profile", "info"));
-    if (profileSnap.exists() || nestedProfileSnap.exists()) {
-      const data = {
-        ...(nestedProfileSnap.exists() ? nestedProfileSnap.data() : {}),
-        ...(profileSnap.exists() ? profileSnap.data() : {})
-      };
-      document.getElementById("custName").value = data.name || user.displayName || "";
-      document.getElementById("custPhone").value = data.phone || "";
-      walletBalance = Math.max(0, Number(data.walletBalance || 0));
-      document.getElementById("walletBalanceTag").textContent = formatCurrency(walletBalance);
-      document.getElementById("walletBalanceHelp").textContent = formatCurrency(walletBalance);
-      savedAddresses = normalizeAddresses(data.addresses, data.address);
-      renderSavedAddresses();
-    } else {
-      savedAddresses = [];
-      renderSavedAddresses();
+    function syncPaymentMethod(method) {
+      selectedPaymentMethod = method;
+      document.querySelectorAll("[data-payment-option]").forEach(option => {
+        const selected = option.dataset.paymentOption === method;
+        option.classList.toggle("is-selected", selected);
+        const input = option.querySelector("input");
+        if (input) input.checked = selected;
+      });
+      const directPayment = method === "TRENDORA_PAY";
+      document.getElementById("trendoraPayHelp").hidden = !directPayment;
+      document.getElementById("walletHelp").hidden = method !== "WALLET";
     }
-    loadEligibleOffers();
-  } catch (err) {
-    console.error(err);
-    renderSavedAddresses();
-  }
-  loadCart();
-});
 
-setInterval(async () => { if (currentUser) await currentUser.getIdToken(true); }, 15 * 60 * 1000);
+    function offerText(code) { return code.type === "flat" ? `${formatCurrency(code.amount)} off` : `${Number(code.amount || 0)}% off`; }
+    async function loadEligibleOffers() {
+      const host = document.getElementById("offerList");
+      if (!currentUser) { host.innerHTML = '<span class="offer-loading">Log in to see your offers.</span>'; return; }
+      try {
+        const snapshot = await getDocs(collection(db, "discountCodes"));
+        const today = new Date();
+        const offers = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(code => {
+          const expired = code.expiresAt && new Date(code.expiresAt + "T23:59:59") < today;
+          const exhausted = Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses);
+          return code.status !== "disabled" && !expired && !exhausted && (!code.userUID || code.userUID === currentUser.uid);
+        }).slice(0, 4);
+        host.innerHTML = offers.length ? offers.map(code => `<button type="button" class="offer-chip" data-code="${escapeHTML(code.code || code.id)}"><strong>${escapeHTML(code.code || code.id)}</strong><span>${offerText(code)}${Number(code.minOrder || 0) ? ` · on orders over ${formatCurrency(code.minOrder)}` : ""}</span></button>`).join("") : '<span class="offer-loading">No eligible offers right now. You can still enter a code below.</span>';
+        host.querySelectorAll("[data-code]").forEach(button => button.onclick = () => { document.getElementById("discountCode").value = button.dataset.code; applyDiscountCode(); });
+      } catch { host.innerHTML = '<span class="offer-loading">Enter a coupon code below to apply it.</span>'; }
+    }
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value || 0));
-}
+    await setPersistence(auth, browserLocalPersistence);
 
-function getCartImage(item) {
-  if (Array.isArray(item.imageUrls) && item.imageUrls.length) return item.imageUrls[0];
-  return item.imageUrl || "";
-}
+    onIdTokenChanged(auth, async (user) => {
+      currentUser = user;
+      if (!user) {
+        const showCheckoutLogin = () => window.TrendoraAuth?.openAuthModal({ mode: "login", returnUrl: "checkout.html" });
+        if (window.TrendoraAuth) showCheckoutLogin();
+        else setTimeout(showCheckoutLogin, 500);
+        return;
+      }
+      currentUser = user;
+      try {
+        const profileSnap = await getDoc(doc(db, "users", user.uid));
+        const nestedProfileSnap = await getDoc(doc(db, "users", user.uid, "profile", "info"));
+        if (profileSnap.exists() || nestedProfileSnap.exists()) {
+          const data = {
+            ...(nestedProfileSnap.exists() ? nestedProfileSnap.data() : {}),
+            ...(profileSnap.exists() ? profileSnap.data() : {})
+          };
+          document.getElementById("custName").value = data.name || user.displayName || "";
+          document.getElementById("custPhone").value = data.phone || "";
+          walletBalance = Math.max(0, Number(data.walletBalance || 0));
+          document.getElementById("walletBalanceTag").textContent = formatCurrency(walletBalance);
+          document.getElementById("walletBalanceHelp").textContent = formatCurrency(walletBalance);
+          savedAddresses = normalizeAddresses(data.addresses, data.address);
+          renderSavedAddresses();
+        } else {
+          savedAddresses = [];
+          renderSavedAddresses();
+        }
+        loadEligibleOffers();
+      } catch (err) {
+        console.error(err);
+        renderSavedAddresses();
+      }
+      loadCart();
+    });
 
-function normalizeAddresses(addresses, fallbackAddress = "") {
-  const list = Array.isArray(addresses) ? addresses : [];
-  const normalized = list
-    .map(address => typeof address === "string" ? address : address?.address || address?.line || "")
-    .map(address => address.trim())
-    .filter(Boolean);
-  if (!normalized.length && fallbackAddress) normalized.push(String(fallbackAddress).trim());
-  return [...new Set(normalized)];
-}
+    setInterval(async () => { if (currentUser) await currentUser.getIdToken(true); }, 15 * 60 * 1000);
 
-function selectSavedAddress(address, index) {
-  document.getElementById("custAddress").value = address;
-  document.querySelectorAll(".address-card").forEach((card, cardIndex) => {
-    const active = cardIndex === index;
-    card.classList.toggle("active", active);
-    const input = card.querySelector("input");
-    if (input) input.checked = active;
-  });
-}
+    function formatCurrency(value) {
+      return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value || 0));
+    }
 
-function renderSavedAddresses() {
-  const container = document.getElementById("savedAddresses");
-  if (!container) return;
-  if (!savedAddresses.length) {
-    container.innerHTML = '<div class="address-empty">No saved addresses yet. Add a delivery address below.</div>';
-    return;
-  }
-  container.innerHTML = savedAddresses.map((address, index) => `
+    function getCartImage(item) {
+      if (Array.isArray(item.imageUrls) && item.imageUrls.length) return item.imageUrls[0];
+      return item.imageUrl || "";
+    }
+
+    function normalizeAddresses(addresses, fallbackAddress = "") {
+      const list = Array.isArray(addresses) ? addresses : [];
+      const normalized = list.map((value, index) => {
+        if (typeof value === "string") return { label: `Address ${index + 1}`, address: value };
+        return { ...value, label: value?.label || `Address ${index + 1}`, address: value?.address || value?.line || "" };
+      }).filter(value => value.address.trim());
+      if (!normalized.length && fallbackAddress) normalized.push({ label: "Address", address: String(fallbackAddress).trim() });
+      return normalized.sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
+    }
+
+    function selectSavedAddress(address, index) {
+      document.getElementById("custAddress").value = [address.address, address.city, address.state, address.pinCode].filter(Boolean).join(", ");
+      if (address.recipientName) document.getElementById("custName").value = address.recipientName;
+      if (address.phone) document.getElementById("custPhone").value = address.phone;
+      document.querySelectorAll(".address-card").forEach((card, cardIndex) => {
+        const active = cardIndex === index;
+        card.classList.toggle("active", active);
+        const input = card.querySelector("input");
+        if (input) input.checked = active;
+      });
+    }
+
+    function renderSavedAddresses() {
+      const container = document.getElementById("savedAddresses");
+      if (!container) return;
+      if (!savedAddresses.length) {
+        container.innerHTML = '<div class="address-empty">No saved addresses yet. Add a delivery address below.</div>';
+        return;
+      }
+      container.innerHTML = savedAddresses.map((address, index) => `
     <button type="button" class="address-card ${index === 0 ? "active" : ""}" data-index="${index}">
       <input type="radio" name="savedAddress" ${index === 0 ? "checked" : ""} tabindex="-1">
-      <span><strong>Saved Address ${index + 1}</strong><span>${address}</span></span>
+      <span><strong>${escapeHTML(address.label || `Address ${index + 1}`)}${address.isDefault ? " · Default" : ""}</strong><span>${escapeHTML([address.recipientName, address.phone, address.address, address.city, address.state, address.pinCode].filter(Boolean).join(" · "))}</span></span>
     </button>
   `).join("");
-  container.querySelectorAll(".address-card").forEach(card => {
-    card.addEventListener("click", () => selectSavedAddress(savedAddresses[Number(card.dataset.index)], Number(card.dataset.index)));
-  });
-  selectSavedAddress(savedAddresses[0], 0);
-}
+      container.querySelectorAll(".address-card").forEach(card => {
+        card.addEventListener("click", () => selectSavedAddress(savedAddresses[Number(card.dataset.index)], Number(card.dataset.index)));
+      });
+      selectSavedAddress(savedAddresses[0], 0);
+    }
 
-function calculateDiscount(code, amount) {
-  const value = Number(code.amount || 0);
-  if (code.type === "flat") return Math.min(value, amount);
-  return Math.min((amount * value) / 100, amount);
-}
+    function calculateDiscount(code, amount) {
+      const value = Number(code.amount || 0);
+      if (code.type === "flat") return Math.min(value, amount);
+      return Math.min((amount * value) / 100, amount);
+    }
 
-function recalculateTotals() {
-  discountAmount = appliedDiscount ? calculateDiscount(appliedDiscount, subtotal) : 0;
-  finalTotal = Math.max(subtotal - discountAmount + deliveryAmount, 0);
-  document.getElementById("total").innerHTML = `
+    function recalculateTotals() {
+      discountAmount = appliedDiscount ? calculateDiscount(appliedDiscount, subtotal) : 0;
+      finalTotal = Math.max(subtotal - discountAmount + deliveryAmount, 0);
+      document.getElementById("total").innerHTML = `
     <div class="total-breakdown">
       <div><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
       <div><span>Discount</span><strong>${discountAmount ? "- " + formatCurrency(discountAmount) : formatCurrency(0)}</strong></div>
@@ -358,364 +770,367 @@ function recalculateTotals() {
       <div class="payable"><span>Payable</span><strong>${formatCurrency(finalTotal)}</strong></div>
     </div>
   `;
-}
+    }
 
-function loadCart() {
-  const container = document.getElementById("cartItems");
-  container.innerHTML = "";
-  if (cart.length === 0) {
-    container.innerHTML = "<p class='empty'>Your cart is empty. <a href='index.html'>Continue shopping</a></p>";
-    document.getElementById("total").innerHTML = "";
-    return;
-  }
-  subtotal = 0;
-  deliveryAmount = 0;
-  cart.forEach(item => {
-    const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
-    const itemDelivery = Number(item.deliveryCharge || 0) * Number(item.quantity || 1);
-    subtotal += itemTotal;
-    deliveryAmount += itemDelivery;
-    const div = document.createElement("div");
-    div.className = "cart-item";
-    div.innerHTML = `
+    function loadCart() {
+      const container = document.getElementById("cartItems");
+      container.innerHTML = "";
+      if (cart.length === 0) {
+        container.innerHTML = "<p class='empty'>Your cart is empty. <a href='index.html'>Continue shopping</a></p>";
+        document.getElementById("total").innerHTML = "";
+        return;
+      }
+      subtotal = 0;
+      deliveryAmount = 0;
+      cart.forEach(item => {
+        const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
+        const itemDelivery = Number(item.deliveryCharge || 0) * Number(item.quantity || 1);
+        subtotal += itemTotal;
+        deliveryAmount += itemDelivery;
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.innerHTML = `
       <div class="summary-item">
         <img src="${escapeHTML(getCartImage(item))}" alt="${escapeHTML(item.name)}">
         <span>${escapeHTML(item.name)} (x${item.quantity})<small class="delivery-line">Delivery: ${formatCurrency(itemDelivery)}</small></span>
       </div>
       <strong>${formatCurrency(itemTotal)}</strong>
     `;
-    container.appendChild(div);
-  });
-  recalculateTotals();
-}
+        container.appendChild(div);
+      });
+      recalculateTotals();
+    }
 
-function showDiscountMessage(message, type = "help") {
-  const el = document.getElementById("discountMessage");
-  el.textContent = message;
-  el.className = type === "success" ? "discount-success" : type === "error" ? "discount-error" : "discount-help";
-}
+    function showDiscountMessage(message, type = "help") {
+      const el = document.getElementById("discountMessage");
+      el.textContent = message;
+      el.className = type === "success" ? "discount-success" : type === "error" ? "discount-error" : "discount-help";
+    }
 
-function renderAppliedCoupon() {
-  const box = document.getElementById("appliedCoupon");
-  if (!appliedDiscount) {
-    box.style.display = "none";
-    box.innerHTML = "";
-    return;
-  }
-  const valueText = appliedDiscount.type === "flat" ? formatCurrency(appliedDiscount.amount) : `${appliedDiscount.amount}%`;
-  box.style.display = "block";
-  box.innerHTML = `
+    function renderAppliedCoupon() {
+      const box = document.getElementById("appliedCoupon");
+      if (!appliedDiscount) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+      const valueText = appliedDiscount.type === "flat" ? formatCurrency(appliedDiscount.amount) : `${appliedDiscount.amount}%`;
+      box.style.display = "block";
+      box.innerHTML = `
     <strong>${appliedDiscount.code}</strong> applied. You saved ${formatCurrency(discountAmount)} with ${valueText} off.
     <br><button type="button" id="removeDiscountBtn">Remove Code</button>
   `;
-  document.getElementById("removeDiscountBtn").onclick = () => {
-    appliedDiscount = null;
-    document.getElementById("discountCode").value = "";
-    showDiscountMessage("Discount code removed.");
-    recalculateTotals();
-    renderAppliedCoupon();
-  };
-}
-
-async function applyDiscountCode() {
-  if (!currentUser) {
-    await window.TrendoraAuth?.requireAuth?.({ mode: "login", returnUrl: "checkout.html" });
-    return;
-  }
-  const rawCode = document.getElementById("discountCode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (!rawCode) {
-    showDiscountMessage("Please enter a discount code.", "error");
-    return;
-  }
-  if (!cart.length) {
-    showDiscountMessage("Add items to cart before applying a code.", "error");
-    return;
-  }
-  const applyButton=document.getElementById("applyDiscountBtn");
-  if(applyButton.disabled)return;
-  applyButton.disabled=true;
-  try {
-  const snap = await getDoc(doc(db, "discountCodes", rawCode));
-  if (!snap.exists()) {
-    showDiscountMessage("This discount code does not exist.", "error");
-    return;
-  }
-  const code = { id: snap.id, ...snap.data() };
-  if (code.status === "disabled") {
-    showDiscountMessage("This discount code is disabled.", "error");
-    return;
-  }
-  if (code.userUID && code.userUID !== currentUser.uid) {
-    showDiscountMessage("This code is assigned to another account.", "error");
-    return;
-  }
-  if (code.expiresAt && new Date(code.expiresAt + "T23:59:59") < new Date()) {
-    showDiscountMessage("This discount code has expired.", "error");
-    return;
-  }
-  if (Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses)) {
-    showDiscountMessage("This discount code has already been used.", "error");
-    return;
-  }
-  if (subtotal < Number(code.minOrder || 0)) {
-    showDiscountMessage(`Minimum order for this code is ${formatCurrency(code.minOrder)}.`, "error");
-    return;
-  }
-  appliedDiscount = code;
-  recalculateTotals();
-  renderAppliedCoupon();
-  discountFor(code,subtotal,currentUser.uid);
-  showDiscountMessage(`Code ${code.code} applied successfully.`, "success");
-  } catch(error){showDiscountMessage(error.message || "Could not check this code. Try again.","error");}
-  finally {applyButton.disabled=false;}
-}
-
-async function createNumericOrderRef(adminUID) {
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const orderId = String(Math.floor(100000 + Math.random() * 9900000));
-    const orderRef = doc(db, "admins", adminUID, "orders", orderId);
-    const existing = await getDoc(orderRef);
-    if (!existing.exists()) return { orderId, orderRef };
-  }
-  throw new Error("Could not generate a unique numeric order ID. Please try again.");
-}
-
-const EMAIL_API_URL = window.TrendoraEmail?.functionUrl || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
-const PAYMENT_API_URL = String(window.TrendoraPayments?.apiUrl || "").replace(/\/$/, "");
-
-function emailOrderPayload(order) {
-  return {
-    id: order.id,
-    customerName: order.customerName,
-    phone: order.phone,
-    address: order.address,
-    items: order.items || [],
-    subtotalAmount: order.subtotalAmount,
-    deliveryAmount: order.deliveryAmount,
-    discountCode: order.discountCode,
-    discountAmount: order.discountAmount,
-    totalAmount: order.totalAmount,
-    paymentMethod: order.paymentMethod,
-    paymentStatus: order.paymentStatus,
-    orderStatus: order.orderStatus,
-    orderDateTime: order.orderDateTime
-  };
-}
-
-async function sendTrendoraEmail(type, to, payload) {
-  if (!to) return;
-  try {
-    const response = await fetch(EMAIL_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, to, payload })
-    });
-    const result = await response.json();
-    console.log("Email:", result.message);
-  } catch (err) {
-    console.error("Email sending failed:", err);
-  }
-}
-
-async function paymentRequest(path, payload) {
-  if (!PAYMENT_API_URL) throw new Error("Online payments are not configured yet. Set the Trendora payment API URL before using Razorpay.");
-  const response = await fetch(`${PAYMENT_API_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.success) throw new Error(result.message || "Unable to start the payment. Please try again.");
-  return result;
-}
-
-function openRazorpayCheckout({ payment, order, customer }) {
-  if (typeof window.Razorpay !== "function") throw new Error("The secure payment window could not be loaded. Check your internet connection and try again.");
-  return new Promise((resolve, reject) => {
-    let completed = false;
-    const checkout = new window.Razorpay({
-      key: payment.keyId,
-      amount: payment.amount,
-      currency: payment.currency,
-      name: "Trendora",
-      description: `Order #${order.id}`,
-      order_id: payment.orderId,
-      prefill: {
-        name: customer.name,
-        contact: `+91${customer.phone}`,
-        email: customer.email
-      },
-      notes: { trendora_order_id: order.id },
-      theme: { color: "#455336" },
-      modal: {
-        ondismiss: () => {
-          if (!completed) reject(new Error("Payment was cancelled. No amount was charged."));
-        }
-      },
-      handler: async (response) => {
-        try {
-          const verification = await paymentRequest("/payments/razorpay/verify", {
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature
-          });
-          completed = true;
-          resolve(verification.payment);
-        } catch (error) {
-          completed = true;
-          reject(error);
-        }
-      }
-    });
-    checkout.on("payment.failed", response => {
-      if (!completed) {
-        completed = true;
-        reject(new Error(response.error?.description || "Payment could not be completed."));
-      }
-    });
-    checkout.open();
-  });
-}
-
-async function processTrendoraPay(order, customer) {
-  const payment = await paymentRequest("/payments/razorpay/order", {
-    amount: Math.round(Number(order.totalAmount) * 100),
-    receipt: `trendora_${order.id}`,
-    notes: { trendora_order_id: order.id }
-  });
-  return openRazorpayCheckout({ payment, order, customer });
-}
-
-async function placeOrder() {
-  if(checkoutInProgress)return;
-  const loader = document.getElementById("loader");
-  const btn = document.getElementById("placeOrderBtn");
-  if (!currentUser) {
-    const isLoggedIn = await window.TrendoraAuth?.requireAuth?.({ mode: "login", returnUrl: "checkout.html" });
-    if (!isLoggedIn) return;
-  }
-
-  loader.style.display = "inline-block";
-  btn.disabled = true;
-
-  const name = document.getElementById("custName").value.trim();
-  const phone = document.getElementById("custPhone").value.trim();
-  const address = document.getElementById("custAddress").value.trim();
-  const paymentMethod = selectedPaymentMethod;
-  subtotal = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
-  deliveryAmount = cart.reduce((sum, item) => sum + (Number(item.deliveryCharge || 0) * Number(item.quantity || 1)), 0);
-  recalculateTotals();
-
-  if (!cart.length) {
-    alert("Your cart is empty.");
-    loader.style.display = "none";
-    btn.disabled = false;
-    return;
-  }
-  if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD","TRENDORA_PAY","WALLET"].includes(paymentMethod)) {
-    alert("Enter your name, a valid 10-digit mobile number, full delivery address and payment method.");
-    loader.style.display = "none";
-    btn.disabled = false;
-    return;
-  }
-  checkoutInProgress=true;
-  let awaitingPayment=false;
-  let committedOrder=null;
-  const resetCheckout=()=>{checkoutInProgress=false;loader.style.display="none";btn.disabled=false;document.getElementById("applyDiscountBtn").disabled=false;};
-  document.getElementById("applyDiscountBtn").disabled=true;
-
-  try {
-    // Refresh stale cart prices before committing; customer reviews any changed total.
-    const latestItems=await Promise.all(cart.map(async item=>{const snap=await getDoc(doc(db,"products",item.id));if(!snap.exists())throw new Error(`${item.name} is no longer available.`);return {...item,price:Number(snap.data().price),name:snap.data().name||item.name,deliveryCharge:Math.max(0,Number(snap.data().deliveryCharge)||0)};}));
-    if(latestItems.some((item,i)=>item.price!==cart[i].price||item.deliveryCharge!==Number(cart[i].deliveryCharge||0))){cart=latestItems;localStorage.setItem("cart",JSON.stringify(cart));loadCart();throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again.");}
-    if(paymentMethod === "WALLET") {
-      const walletSnap = await getDoc(doc(db,"users",currentUser.uid));
-      const availableBalance = Math.max(0, Number(walletSnap.data()?.walletBalance || 0));
-      walletBalance = availableBalance;
-      document.getElementById("walletBalanceTag").textContent = formatCurrency(availableBalance);
-      document.getElementById("walletBalanceHelp").textContent = formatCurrency(availableBalance);
-      if(availableBalance < finalTotal) throw new Error(`Insufficient Trendora Wallet balance. Available: ${formatCurrency(availableBalance)}. Order total: ${formatCurrency(finalTotal)}. Please add funds or select another payment method.`);
-    }
-    const adminUID = "REPLACE_WITH_ADMIN_UID";
-    const { orderId, orderRef } = await createNumericOrderRef(adminUID);
-    const placedAt = new Date();
-    const orderDate = placedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-    const orderTime = placedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    let orderData = {
-      id: orderId,
-      adminUID,
-      customerName: name,
-      phone,
-      address,
-      items: cart,
-      subtotalAmount: subtotal,
-      deliveryAmount,
-      discountCode: appliedDiscount?.code || "",
-      discountType: appliedDiscount?.type || "",
-      discountValue: appliedDiscount?.amount || 0,
-      discountAmount,
-      totalAmount: finalTotal,
-      paymentMethod,
-      paymentStatus: paymentMethod === "TRENDORA_PAY" ? "Payment pending" : paymentMethod === "WALLET" ? "Paid" : "Pending",
-      orderStatus: paymentMethod === "WALLET" ? "Confirmed" : "Pending",
-      paymentReference: "",
-      userUID: currentUser.uid,
-      userEmail: currentUser.email,
-      orderDate,
-      orderTime,
-      orderDateTime: `${orderDate}, ${orderTime}`,
-      orderPlacedAtMs: placedAt.getTime(),
-      restored: false,
-      timestamp: serverTimestamp()
-    };
-
-    orderData = await createOrderWithInventory(db,orderData,appliedDiscount?.id || "");
-    committedOrder = orderData;
-
-    if (paymentMethod === "COD" || paymentMethod === "WALLET") {
-      awaitingPayment = true;
-      await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
-      await window.trendoraDialog.alert(paymentMethod === "WALLET" ? "Order placed and paid with your Trendora Wallet." : "Order placed successfully.");
-      localStorage.removeItem("cart");
-      window.location.href = "orders.html";
-    } else if (paymentMethod === "TRENDORA_PAY") {
-      const payment = await processTrendoraPay(orderData, { name, phone, email: currentUser.email });
-      const paymentUpdates = {
-        paymentStatus: "Paid",
-        paymentReference: payment.paymentId,
-        razorpayOrderId: payment.orderId,
-        orderStatus: "Confirmed"
+      document.getElementById("removeDiscountBtn").onclick = () => {
+        appliedDiscount = null;
+        document.getElementById("discountCode").value = "";
+        showDiscountMessage("Discount code removed.");
+        recalculateTotals();
+        renderAppliedCoupon();
       };
-      await updateOrderAtomic(db, orderData, paymentUpdates);
-      Object.assign(orderData, paymentUpdates);
-      awaitingPayment = true;
-      await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
-      await window.trendoraDialog.alert("Payment received and verified. Your order has been confirmed.");
-      localStorage.removeItem("cart");
-      window.location.href = "orders.html";
     }
-  } catch (error) {
-    if (committedOrder && paymentMethod === "TRENDORA_PAY") {
-      try { await updateOrderAtomic(db,committedOrder,{orderStatus:"Cancelled",paymentStatus:"Payment verification failed"},{restore:true,releaseCoupon:true}); }
-      catch(restoreError){console.error(restoreError);alert("Please check your orders before retrying checkout.");}
-    }
-    awaitingPayment=false;
-    alert(error.message || "Unable to place order. Please try again.");
-  } finally {
-    if(!awaitingPayment)resetCheckout();
-  }
-}
 
-document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
-document.querySelectorAll('input[name="paymentMethod"]').forEach(input => input.addEventListener("change", () => syncPaymentMethod(input.value)));
-document.getElementById("applyDiscountBtn").addEventListener("click", applyDiscountCode);
-document.getElementById("discountCode").addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    applyDiscountCode();
-  }
-});
-</script>
-<script src="js/main.js" defer></script>
+    async function applyDiscountCode() {
+      if (!currentUser) {
+        await window.TrendoraAuth?.requireAuth?.({ mode: "login", returnUrl: "checkout.html" });
+        return;
+      }
+      const rawCode = document.getElementById("discountCode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (!rawCode) {
+        showDiscountMessage("Please enter a discount code.", "error");
+        return;
+      }
+      if (!cart.length) {
+        showDiscountMessage("Add items to cart before applying a code.", "error");
+        return;
+      }
+      const applyButton = document.getElementById("applyDiscountBtn");
+      if (applyButton.disabled) return;
+      applyButton.disabled = true;
+      try {
+        const snap = await getDoc(doc(db, "discountCodes", rawCode));
+        if (!snap.exists()) {
+          showDiscountMessage("This discount code does not exist.", "error");
+          return;
+        }
+        const code = { id: snap.id, ...snap.data() };
+        if (code.status === "disabled") {
+          showDiscountMessage("This discount code is disabled.", "error");
+          return;
+        }
+        if (code.userUID && code.userUID !== currentUser.uid) {
+          showDiscountMessage("This code is assigned to another account.", "error");
+          return;
+        }
+        if (code.expiresAt && new Date(code.expiresAt + "T23:59:59") < new Date()) {
+          showDiscountMessage("This discount code has expired.", "error");
+          return;
+        }
+        if (Number(code.maxUses || 0) > 0 && Number(code.usedCount || 0) >= Number(code.maxUses)) {
+          showDiscountMessage("This discount code has already been used.", "error");
+          return;
+        }
+        if (subtotal < Number(code.minOrder || 0)) {
+          showDiscountMessage(`Minimum order for this code is ${formatCurrency(code.minOrder)}.`, "error");
+          return;
+        }
+        appliedDiscount = code;
+        recalculateTotals();
+        renderAppliedCoupon();
+        discountFor(code, subtotal, currentUser.uid);
+        showDiscountMessage(`Code ${code.code} applied successfully.`, "success");
+      } catch (error) { showDiscountMessage(error.message || "Could not check this code. Try again.", "error"); }
+      finally { applyButton.disabled = false; }
+    }
+
+    async function createNumericOrderRef(adminUID) {
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const orderId = String(Math.floor(100000 + Math.random() * 9900000));
+        const orderRef = doc(db, "admins", adminUID, "orders", orderId);
+        const existing = await getDoc(orderRef);
+        if (!existing.exists()) return { orderId, orderRef };
+      }
+      throw new Error("Could not generate a unique numeric order ID. Please try again.");
+    }
+
+    const EMAIL_API_URL = window.TrendoraEmail?.functionUrl || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
+    const PAYMENT_API_URL = String(window.TrendoraPayments?.apiUrl || "").replace(/\/$/, "");
+
+    function emailOrderPayload(order) {
+      return {
+        id: order.id,
+        customerName: order.customerName,
+        phone: order.phone,
+        address: order.address,
+        items: order.items || [],
+        subtotalAmount: order.subtotalAmount,
+        deliveryAmount: order.deliveryAmount,
+        discountCode: order.discountCode,
+        discountAmount: order.discountAmount,
+        totalAmount: order.totalAmount,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.orderStatus,
+        orderDateTime: order.orderDateTime
+      };
+    }
+
+    async function sendTrendoraEmail(type, to, payload) {
+      if (!to) return;
+      try {
+        const response = await fetch(EMAIL_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, to, payload })
+        });
+        const result = await response.json();
+        console.log("Email:", result.message);
+      } catch (err) {
+        console.error("Email sending failed:", err);
+      }
+    }
+
+    async function paymentRequest(path, payload) {
+      if (!PAYMENT_API_URL) throw new Error("Online payments are not configured yet. Set the Trendora payment API URL before using Razorpay.");
+      const response = await fetch(`${PAYMENT_API_URL}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.message || "Unable to start the payment. Please try again.");
+      return result;
+    }
+
+    function openRazorpayCheckout({ payment, order, customer }) {
+      if (typeof window.Razorpay !== "function") throw new Error("The secure payment window could not be loaded. Check your internet connection and try again.");
+      return new Promise((resolve, reject) => {
+        let completed = false;
+        const checkout = new window.Razorpay({
+          key: payment.keyId,
+          amount: payment.amount,
+          currency: payment.currency,
+          name: "Trendora",
+          description: `Order #${order.id}`,
+          order_id: payment.orderId,
+          prefill: {
+            name: customer.name,
+            contact: `+91${customer.phone}`,
+            email: customer.email
+          },
+          notes: { trendora_order_id: order.id },
+          theme: { color: "#455336" },
+          modal: {
+            ondismiss: () => {
+              if (!completed) reject(new Error("Payment was cancelled. No amount was charged."));
+            }
+          },
+          handler: async (response) => {
+            try {
+              const verification = await paymentRequest("/payments/razorpay/verify", {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              });
+              completed = true;
+              resolve(verification.payment);
+            } catch (error) {
+              completed = true;
+              reject(error);
+            }
+          }
+        });
+        checkout.on("payment.failed", response => {
+          if (!completed) {
+            completed = true;
+            reject(new Error(response.error?.description || "Payment could not be completed."));
+          }
+        });
+        checkout.open();
+      });
+    }
+
+    async function processTrendoraPay(order, customer) {
+      const payment = await paymentRequest("/payments/razorpay/order", {
+        amount: Math.round(Number(order.totalAmount) * 100),
+        receipt: `trendora_${order.id}`,
+        notes: { trendora_order_id: order.id }
+      });
+      return openRazorpayCheckout({ payment, order, customer });
+    }
+
+    async function placeOrder() {
+      if (checkoutInProgress) return;
+      const loader = document.getElementById("loader");
+      const btn = document.getElementById("placeOrderBtn");
+      if (!currentUser) {
+        const isLoggedIn = await window.TrendoraAuth?.requireAuth?.({ mode: "login", returnUrl: "checkout.html" });
+        if (!isLoggedIn) return;
+      }
+
+      loader.style.display = "inline-block";
+      btn.disabled = true;
+
+      const name = document.getElementById("custName").value.trim();
+      const phone = document.getElementById("custPhone").value.trim();
+      const address = document.getElementById("custAddress").value.trim();
+      const paymentMethod = selectedPaymentMethod;
+      subtotal = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+      deliveryAmount = cart.reduce((sum, item) => sum + (Number(item.deliveryCharge || 0) * Number(item.quantity || 1)), 0);
+      recalculateTotals();
+
+      if (!cart.length) {
+        alert("Your cart is empty.");
+        loader.style.display = "none";
+        btn.disabled = false;
+        return;
+      }
+      if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD", "TRENDORA_PAY", "WALLET"].includes(paymentMethod)) {
+        alert("Enter your name, a valid 10-digit mobile number, full delivery address and payment method.");
+        loader.style.display = "none";
+        btn.disabled = false;
+        return;
+      }
+      checkoutInProgress = true;
+      let awaitingPayment = false;
+      let committedOrder = null;
+      const resetCheckout = () => { checkoutInProgress = false; loader.style.display = "none"; btn.disabled = false; document.getElementById("applyDiscountBtn").disabled = false; };
+      document.getElementById("applyDiscountBtn").disabled = true;
+
+      try {
+        // Refresh stale cart prices before committing; customer reviews any changed total.
+        const latestItems = await Promise.all(cart.map(async item => { const snap = await getDoc(doc(db, "products", item.id)); if (!snap.exists()) throw new Error(`${item.name} is no longer available.`); return { ...item, price: Number(snap.data().price), name: snap.data().name || item.name, deliveryCharge: Math.max(0, Number(snap.data().deliveryCharge) || 0) }; }));
+        if (latestItems.some((item, i) => item.price !== cart[i].price || item.deliveryCharge !== Number(cart[i].deliveryCharge || 0))) { cart = latestItems; localStorage.setItem("cart", JSON.stringify(cart)); loadCart(); throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again."); }
+        if (paymentMethod === "WALLET") {
+          const walletSnap = await getDoc(doc(db, "users", currentUser.uid));
+          const availableBalance = Math.max(0, Number(walletSnap.data()?.walletBalance || 0));
+          walletBalance = availableBalance;
+          document.getElementById("walletBalanceTag").textContent = formatCurrency(availableBalance);
+          document.getElementById("walletBalanceHelp").textContent = formatCurrency(availableBalance);
+          if (availableBalance < finalTotal) {
+            throw new Error(`Insufficient Trendora Wallet balance. Available: ${formatCurrency(availableBalance)}. Order total: ${formatCurrency(finalTotal)}. Please add funds or select another payment method.`);
+          }
+        }
+        const adminUID = "REPLACE_WITH_ADMIN_UID";
+        const { orderId, orderRef } = await createNumericOrderRef(adminUID);
+        const placedAt = new Date();
+        const orderDate = placedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        const orderTime = placedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        let orderData = {
+          id: orderId,
+          adminUID,
+          customerName: name,
+          phone,
+          address,
+          items: cart,
+          subtotalAmount: subtotal,
+          deliveryAmount,
+          discountCode: appliedDiscount?.code || "",
+          discountType: appliedDiscount?.type || "",
+          discountValue: appliedDiscount?.amount || 0,
+          discountAmount,
+          totalAmount: finalTotal,
+          paymentMethod,
+          paymentStatus: paymentMethod === "TRENDORA_PAY" ? "Payment pending" : paymentMethod === "WALLET" ? "Paid" : "Pending",
+          orderStatus: paymentMethod === "WALLET" ? "Confirmed" : "Pending",
+          paymentReference: "",
+          userUID: currentUser.uid,
+          userEmail: currentUser.email,
+          orderDate,
+          orderTime,
+          orderDateTime: `${orderDate}, ${orderTime}`,
+          orderPlacedAtMs: placedAt.getTime(),
+          restored: false,
+          timestamp: serverTimestamp()
+        };
+
+        orderData = await createOrderWithInventory(db, orderData, appliedDiscount?.id || "");
+        committedOrder = orderData;
+
+        if (paymentMethod === "COD" || paymentMethod === "WALLET") {
+          awaitingPayment = true;
+          await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
+          await window.trendoraDialog.alert(paymentMethod === "WALLET" ? "Order placed and paid with your Trendora Wallet." : "Order placed successfully.");
+          localStorage.removeItem("cart");
+          window.location.href = "orders.html";
+        } else if (paymentMethod === "TRENDORA_PAY") {
+          const payment = await processTrendoraPay(orderData, { name, phone, email: currentUser.email });
+          const paymentUpdates = {
+            paymentStatus: "Paid",
+            paymentReference: payment.paymentId,
+            razorpayOrderId: payment.orderId,
+            orderStatus: "Confirmed"
+          };
+          await updateOrderAtomic(db, orderData, paymentUpdates);
+          Object.assign(orderData, paymentUpdates);
+          awaitingPayment = true;
+          await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
+          await window.trendoraDialog.alert("Payment received and verified. Your order has been confirmed.");
+          localStorage.removeItem("cart");
+          window.location.href = "orders.html";
+        }
+      } catch (error) {
+        if (committedOrder && paymentMethod === "TRENDORA_PAY") {
+          try { await updateOrderAtomic(db, committedOrder, { orderStatus: "Cancelled", paymentStatus: "Payment verification failed" }, { restore: true, releaseCoupon: true }); }
+          catch (restoreError) { console.error(restoreError); alert("Please check your orders before retrying checkout."); }
+        }
+        awaitingPayment = false;
+        alert(error.message || "Unable to place order. Please try again.");
+      } finally {
+        if (!awaitingPayment) resetCheckout();
+      }
+    }
+
+    document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
+    document.querySelectorAll('input[name="paymentMethod"]').forEach(input => input.addEventListener("change", () => syncPaymentMethod(input.value)));
+    document.getElementById("applyDiscountBtn").addEventListener("click", applyDiscountCode);
+    document.getElementById("discountCode").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        applyDiscountCode();
+      }
+    });
+  </script>
+  <script src="js/main.js" defer></script>
 </body>
+
 </html>
