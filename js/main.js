@@ -1,4 +1,10 @@
 (() => {
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(error => console.warn("Offline cache registration failed:", error));
+    }, { once: true });
+  }
+
   const firebaseConfig = {
     apiKey: "AIzaSyBFh6tNI6roZQecdYGtzs7tX75lY4NHbqo",
     authDomain: "trendora-1cd23.firebaseapp.com",

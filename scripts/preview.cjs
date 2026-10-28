@@ -7,5 +7,5 @@ http.createServer((req,res)=>{
  if(segments.some(segment=>segment.startsWith('.')||['trendora-backend','supabase','tests','scripts'].includes(segment))){res.writeHead(403);return res.end('Forbidden');}
  const name=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));
  if(!name.startsWith(root+path.sep)||!mime[path.extname(name)]){res.writeHead(404);return res.end('Not found');}
- fs.readFile(name,(err,data)=>{if(err){res.writeHead(404);return res.end('Not found');}res.setHeader('Content-Type',mime[path.extname(name)]);res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.end(data);});
+ fs.readFile(name,(err,data)=>{if(err){res.writeHead(404);return res.end('Not found');}const ext=path.extname(name);res.setHeader('Content-Type',mime[ext]);res.setHeader('Cache-Control',ext==='.html'?'no-cache':'public, max-age=3600');res.setHeader('X-Content-Type-Options','nosniff');res.end(data);});
 }).listen(Number(process.env.PORT||4390),'127.0.0.1',()=>console.log('Trendora preview: http://127.0.0.1:'+(process.env.PORT||4390)));
