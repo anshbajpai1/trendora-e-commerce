@@ -470,11 +470,15 @@
       background: #f3f7eb;
       color: #46553a;
       cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
     }
     .wallet-split-option input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: #455336; flex: 0 0 auto; }
     .wallet-split-option strong, .wallet-split-option span { display: block; }
     .wallet-split-option strong { font-size: 13px; color: #34422c; }
     .wallet-split-option span { margin-top: 3px; font-size: 12px; line-height: 1.5; }
+    .wallet-split-option.is-active { border-color: #738957; background: #eaf2dd; box-shadow: 0 0 0 3px rgba(101, 126, 73, .13); }
+    .wallet-balance-line { color: #3f5b2d; font-weight: 700; }
 
     .payment-reference {
       margin-top: 4px;
@@ -553,8 +557,8 @@
 
         <section class="section" aria-labelledby="paymentTitle">
           <h2 id="paymentTitle">Choose how you’d like to pay</h2>
-          <label id="walletSplitOption" class="wallet-split-option" hidden>
-            <input id="useWalletCredit" type="checkbox">
+          <label id="walletSplitOption" class="wallet-split-option" hidden tabindex="0">
+            <input id="useWalletCredit" type="checkbox" aria-describedby="walletSplitSummary">
             <span><strong>Use my Trendora Wallet balance first</strong><span id="walletSplitSummary">Apply your available wallet credit before the remaining payment.</span></span>
           </label>
           <div class="payment-methods" role="radiogroup" aria-label="Payment method">
@@ -652,10 +656,12 @@
       const eligible = walletBalance > 0 && finalTotal > 0;
       option.hidden = !eligible;
       if (!eligible) checkbox.checked = false;
+      option.classList.toggle("is-active", eligible && checkbox.checked);
+      option.setAttribute("aria-label", eligible ? `Use wallet balance. Available ${formatCurrency(walletBalance)}.` : "Wallet balance unavailable for this order.");
       if (eligible) {
         const walletUse = Math.min(walletBalance, finalTotal);
         const remaining = Math.max(0, finalTotal - walletUse);
-        document.getElementById("walletSplitSummary").textContent = remaining ? `Use ${formatCurrency(walletUse)} from your wallet, then pay ${formatCurrency(remaining)} by Cash on Delivery.` : `Your wallet balance of ${formatCurrency(walletUse)} covers this order in full.`;
+        document.getElementById("walletSplitSummary").innerHTML = `<span class="wallet-balance-line">Wallet balance: ${formatCurrency(walletBalance)}</span>${remaining ? `Use ${formatCurrency(walletUse)} from your wallet, then pay ${formatCurrency(remaining)} by Cash on Delivery.` : `Your wallet balance covers this order in full.`}`;
       }
     }
 
@@ -1055,7 +1061,23 @@
 
     document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
     document.querySelectorAll('input[name="paymentMethod"]').forEach(input => input.addEventListener("change", () => syncPaymentMethod(input.value)));
-    document.getElementById("useWalletCredit").addEventListener("change", recalculateTotals);
+    const walletSplitOption = document.getElementById("walletSplitOption");
+    const walletCreditCheckbox = document.getElementById("useWalletCredit");
+    walletSplitOption.addEventListener("click", event => {
+      // Labels normally toggle their checkbox, but this explicit path also makes
+      // the entire wallet card reliable on touch devices and layered layouts.
+      if (event.target === walletCreditCheckbox) return;
+      event.preventDefault();
+      walletCreditCheckbox.checked = !walletCreditCheckbox.checked;
+      recalculateTotals();
+    });
+    walletSplitOption.addEventListener("keydown", event => {
+      if (event.key !== " " && event.key !== "Enter") return;
+      event.preventDefault();
+      walletCreditCheckbox.checked = !walletCreditCheckbox.checked;
+      recalculateTotals();
+    });
+    walletCreditCheckbox.addEventListener("change", recalculateTotals);
     document.getElementById("applyDiscountBtn").addEventListener("click", applyDiscountCode);
     document.getElementById("discountCode").addEventListener("keydown", e => {
       if (e.key === "Enter") {
