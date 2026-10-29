@@ -241,11 +241,24 @@
   .private-offer-heading strong { display: block; color: #435536; font-size: 14px; font-weight: 600; }
   .private-offer-heading span { display: block; margin-top: 3px; color: #879379; font-size: 11px; }
   .admin-workspace .privateCouponForm {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: 0;
-    background: transparent;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 14px 12px;
+    padding: 18px;
+    border: 1px solid #dfe7d4;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f7f9f2, #eef3e7);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.82);
   }
-  .admin-workspace .privateCouponForm .btn { min-width: 106px; }
+  .admin-workspace .privateCouponForm .field:nth-of-type(1) { grid-column: span 4; }
+  .admin-workspace .privateCouponForm .field:nth-of-type(2),
+  .admin-workspace .privateCouponForm .field:nth-of-type(3),
+  .admin-workspace .privateCouponForm .field:nth-of-type(4),
+  .admin-workspace .privateCouponForm .field:nth-of-type(5) { grid-column: span 2; }
+  .admin-workspace .privateCouponForm .field:nth-of-type(6) { grid-column: span 4; }
+  .admin-workspace .privateCouponForm .btn { grid-column: span 3; min-width: 0; min-height: 42px; align-self: end; }
+  .admin-workspace .privateCouponForm .field label { color: #59684b; font-size: 10px; letter-spacing: .045em; text-transform: uppercase; }
+  .admin-workspace .privateCouponForm input,
+  .admin-workspace .privateCouponForm select { min-width: 0; background: rgba(255,255,255,.9); border-color: #d6e0c9; }
   .admin-workspace .coupon-list {
     grid-column: 1 / -1;
     margin: 0;
@@ -256,6 +269,12 @@
   .admin-workspace .coupon-row { gap: 18px; }
   .admin-workspace .coupon-row .actions { flex-shrink: 0; }
   .admin-workspace .coupon-row .btn { min-width: 72px; }
+  .admin-workspace .private-code-list { display: grid; gap: 10px; padding-top: 16px; background: #fbfcf8; }
+  .admin-workspace .private-code-list .coupon-row { align-items: stretch; padding: 14px 15px; border-color: #dfe7d4; background: #fff; box-shadow: 0 5px 14px rgba(49,68,35,.04); }
+  .admin-workspace .private-code-list .coupon-row > div:first-child { min-width: 0; }
+  .admin-workspace .private-code-list .code { display: inline-flex; padding: 5px 8px; border-radius: 5px; background: #edf3e3; color: #435b30; font-size: 12px; }
+  .admin-workspace .private-code-list .pill { margin-left: 6px; vertical-align: middle; }
+  .admin-workspace .private-code-list .actions { align-items: center; }
   .user-pagination {
     display: flex;
     align-items: center;
@@ -293,6 +312,9 @@
     .admin-workspace .toolbar,
     .admin-workspace #globalCouponForm,
     .admin-workspace .privateCouponForm { grid-template-columns: 1fr; }
+    .admin-workspace .privateCouponForm .field,
+    .admin-workspace .privateCouponForm .field:nth-of-type(n),
+    .admin-workspace .privateCouponForm .btn { grid-column: auto; }
     .admin-workspace .user-profile,
     .admin-workspace .private-offer-panel { padding: 18px; }
     .admin-workspace .coupon-list { padding: 16px 18px 18px; }
@@ -301,6 +323,12 @@
     .admin-workspace .coupon-row .actions .btn { flex: 1; }
     .user-pagination { align-items: flex-start; flex-direction: column; }
     .user-pagination-controls { width: 100%; justify-content: flex-start; }
+  }
+  @media (min-width: 701px) and (max-width: 1040px) {
+    .admin-workspace .privateCouponForm { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-workspace .privateCouponForm .field,
+    .admin-workspace .privateCouponForm .field:nth-of-type(n) { grid-column: auto; }
+    .admin-workspace .privateCouponForm .btn { grid-column: span 2; }
   }
 </style>
 </head>
@@ -888,7 +916,7 @@ function renderUsers() {
           <button class="btn" type="submit">Generate</button>
         </form>
       </div>
-      <div class="coupon-list">
+      <div class="coupon-list private-code-list">
         ${privateCodes.length ? privateCodes.map(code => renderCodeRow(code, user.uid)).join("") : '<div class="empty">No private discount code assigned yet.</div>'}
       </div>
     `;
