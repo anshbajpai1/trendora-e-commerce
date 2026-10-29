@@ -508,7 +508,12 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
     renderProducts();
     document.getElementById("collection")?.scrollIntoView({behavior:"smooth", block:"start"});
   });
-  productSearch.addEventListener("input", resetCatalogPagination);
+  let searchRenderTimer;
+  productSearch.addEventListener("input", () => {
+    // Avoid rebuilding the full product grid on every keystroke on slower phones.
+    clearTimeout(searchRenderTimer);
+    searchRenderTimer = setTimeout(resetCatalogPagination, 140);
+  });
   productFilter.addEventListener("change", resetCatalogPagination);
   productSort.addEventListener("change", resetCatalogPagination);
   document.getElementById("resetFiltersBtn").onclick = () => {
