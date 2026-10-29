@@ -553,21 +553,11 @@
 
         <section class="section" aria-labelledby="paymentTitle">
           <h2 id="paymentTitle">Choose how you’d like to pay</h2>
+          <label id="walletSplitOption" class="wallet-split-option" hidden>
+            <input id="useWalletCredit" type="checkbox">
+            <span><strong>Use my Trendora Wallet balance first</strong><span id="walletSplitSummary">Apply your available wallet credit before the remaining payment.</span></span>
+          </label>
           <div class="payment-methods" role="radiogroup" aria-label="Payment method">
-            <label class="payment-option" data-payment-option="TRENDORA_PAY">
-              <input type="radio" name="paymentMethod" value="TRENDORA_PAY" aria-describedby="trendoraPayHelp">
-              <span class="payment-option__mark" aria-hidden="true">T</span>
-              <span class="payment-option__copy"><strong>Trendora Pay</strong><small>Pay securely with UPI, cards,
-                  netbanking and other methods.</small></span>
-              <span class="payment-option__tag">Secure</span>
-            </label>
-            <label class="payment-option" data-payment-option="WALLET">
-              <input type="radio" name="paymentMethod" value="WALLET" aria-describedby="walletHelp">
-              <span class="payment-option__mark" aria-hidden="true">W</span>
-              <span class="payment-option__copy"><strong>Trendora Wallet</strong><small>Use your available wallet credit
-                  for this order.</small></span>
-              <span class="payment-option__tag" id="walletBalanceTag">Loading</span>
-            </label>
             <label class="payment-option is-selected" data-payment-option="COD">
               <input type="radio" name="paymentMethod" value="COD" checked>
               <span class="payment-option__mark" aria-hidden="true">₹</span>
@@ -576,16 +566,6 @@
               <span class="payment-option__tag">Pay later</span>
             </label>
           </div>
-          <div id="trendoraPayHelp" class="trendora-pay-details" hidden><strong>Secure payment by Razorpay.</strong>
-            Select Trendora Pay and continue to a secure Razorpay checkout, where you can choose UPI, card or
-            netbanking. Trendora never receives your card or bank credentials.</div>
-          <div id="walletHelp" class="trendora-pay-details" hidden><strong>Pay with your store credit.</strong> Your
-            current Trendora Wallet balance is <span id="walletBalanceHelp">₹0.00</span>. Wallet payment is available
-            only when the balance covers the entire order.</div>
-          <label id="walletSplitOption" class="wallet-split-option" hidden>
-            <input id="useWalletCredit" type="checkbox">
-            <span><strong>Use my wallet balance first</strong><span id="walletSplitSummary">Apply your available wallet credit, then pay the balance with the selected method.</span></span>
-          </label>
         </section>
       </div>
 
@@ -619,12 +599,9 @@
   </main>
 
   <script src="js/email-config.js"></script>
-  <script src="js/payment-config.js"></script>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script type="module">
     import { normalizeCart, escapeHTML, discountFor } from "./js/commerce.mjs";
     import { createOrderWithInventory } from "./js/checkout-order.js";
-    import { updateOrderAtomic } from "./js/order-transactions.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, setPersistence, browserLocalPersistence, onIdTokenChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -662,31 +639,23 @@
         const input = option.querySelector("input");
         if (input) input.checked = selected;
       });
-      const directPayment = method === "TRENDORA_PAY";
-      document.getElementById("trendoraPayHelp").hidden = !directPayment;
-      document.getElementById("walletHelp").hidden = method !== "WALLET";
       updateWalletSplitUI();
     }
 
     function selectedWalletAmount() {
-      if (selectedPaymentMethod === "WALLET") return Math.min(walletBalance, finalTotal);
       return document.getElementById("useWalletCredit")?.checked ? Math.min(walletBalance, finalTotal) : 0;
     }
 
     function updateWalletSplitUI() {
       const option = document.getElementById("walletSplitOption");
       const checkbox = document.getElementById("useWalletCredit");
-      const eligible = selectedPaymentMethod !== "WALLET" && walletBalance > 0 && finalTotal > walletBalance;
+      const eligible = walletBalance > 0 && finalTotal > 0;
       option.hidden = !eligible;
       if (!eligible) checkbox.checked = false;
       if (eligible) {
-        const remaining = Math.max(0, finalTotal - walletBalance);
-        document.getElementById("walletSplitSummary").textContent = `Use ${formatCurrency(walletBalance)} from your wallet and pay ${formatCurrency(remaining)} with ${selectedPaymentMethod === "TRENDORA_PAY" ? "Trendora Pay" : "Cash on Delivery"}.`;
-      }
-      if (selectedPaymentMethod === "WALLET" && finalTotal > walletBalance) {
-        document.getElementById("walletHelp").innerHTML = `<strong>Your wallet balance is ${formatCurrency(walletBalance)}.</strong> It does not cover this ${formatCurrency(finalTotal)} order. Choose Cash on Delivery or Trendora Pay, then use the option below to apply your wallet balance first.`;
-      } else {
-        document.getElementById("walletHelp").innerHTML = `<strong>Pay with your store credit.</strong> Your current Trendora Wallet balance is <span id="walletBalanceHelp">${formatCurrency(walletBalance)}</span>. Wallet payment is available when the balance covers the entire order.`;
+        const walletUse = Math.min(walletBalance, finalTotal);
+        const remaining = Math.max(0, finalTotal - walletUse);
+        document.getElementById("walletSplitSummary").textContent = remaining ? `Use ${formatCurrency(walletUse)} from your wallet, then pay ${formatCurrency(remaining)} by Cash on Delivery.` : `Your wallet balance of ${formatCurrency(walletUse)} covers this order in full.`;
       }
     }
 
@@ -732,8 +701,6 @@
           document.getElementById("custName").value = data.name || user.displayName || "";
           document.getElementById("custPhone").value = data.phone || "";
           walletBalance = Math.max(0, Number(data.walletBalance || 0));
-          document.getElementById("walletBalanceTag").textContent = formatCurrency(walletBalance);
-          document.getElementById("walletBalanceHelp").textContent = formatCurrency(walletBalance);
           savedAddresses = normalizeAddresses(data.addresses, data.address);
           renderSavedAddresses();
         } else {
@@ -945,7 +912,6 @@
     }
 
     const EMAIL_API_URL = window.TrendoraEmail?.functionUrl || "https://xgcuvjabxldaikdebztx.supabase.co/functions/v1/send-notification";
-    const PAYMENT_API_URL = String(window.TrendoraPayments?.apiUrl || "").replace(/\/$/, "");
 
     function emailOrderPayload(order) {
       return {
@@ -981,75 +947,6 @@
       }
     }
 
-    async function paymentRequest(path, payload) {
-      if (!PAYMENT_API_URL) throw new Error("Online payments are not configured yet. Set the Trendora payment API URL before using Razorpay.");
-      const response = await fetch(`${PAYMENT_API_URL}${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.success) throw new Error(result.message || "Unable to start the payment. Please try again.");
-      return result;
-    }
-
-    function openRazorpayCheckout({ payment, order, customer }) {
-      if (typeof window.Razorpay !== "function") throw new Error("The secure payment window could not be loaded. Check your internet connection and try again.");
-      return new Promise((resolve, reject) => {
-        let completed = false;
-        const checkout = new window.Razorpay({
-          key: payment.keyId,
-          amount: payment.amount,
-          currency: payment.currency,
-          name: "Trendora",
-          description: `Order #${order.id}`,
-          order_id: payment.orderId,
-          prefill: {
-            name: customer.name,
-            contact: `+91${customer.phone}`,
-            email: customer.email
-          },
-          notes: { trendora_order_id: order.id },
-          theme: { color: "#455336" },
-          modal: {
-            ondismiss: () => {
-              if (!completed) reject(new Error("Payment was cancelled. No amount was charged."));
-            }
-          },
-          handler: async (response) => {
-            try {
-              const verification = await paymentRequest("/payments/razorpay/verify", {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              });
-              completed = true;
-              resolve(verification.payment);
-            } catch (error) {
-              completed = true;
-              reject(error);
-            }
-          }
-        });
-        checkout.on("payment.failed", response => {
-          if (!completed) {
-            completed = true;
-            reject(new Error(response.error?.description || "Payment could not be completed."));
-          }
-        });
-        checkout.open();
-      });
-    }
-
-    async function processTrendoraPay(order, customer) {
-      const payment = await paymentRequest("/payments/razorpay/order", {
-        amount: Math.round(Number(order.remainingAmount ?? order.totalAmount) * 100),
-        receipt: `trendora_${order.id}`,
-        notes: { trendora_order_id: order.id }
-      });
-      return openRazorpayCheckout({ payment, order, customer });
-    }
-
     async function placeOrder() {
       if (checkoutInProgress) return;
       const loader = document.getElementById("loader");
@@ -1076,7 +973,7 @@
         btn.disabled = false;
         return;
       }
-      if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || !["COD", "TRENDORA_PAY", "WALLET"].includes(paymentMethod)) {
+      if (!name || !/^[6-9][0-9]{9}$/.test(phone) || address.length < 8 || paymentMethod !== "COD") {
         alert("Enter your name, a valid 10-digit mobile number, full delivery address and payment method.");
         loader.style.display = "none";
         btn.disabled = false;
@@ -1092,22 +989,16 @@
         // Refresh stale cart prices before committing; customer reviews any changed total.
         const latestItems = await Promise.all(cart.map(async item => { const snap = await getDoc(doc(db, "products", item.id)); if (!snap.exists()) throw new Error(`${item.name} is no longer available.`); return { ...item, price: Number(snap.data().price), name: snap.data().name || item.name, deliveryCharge: Math.max(0, Number(snap.data().deliveryCharge) || 0) }; }));
         if (latestItems.some((item, i) => item.price !== cart[i].price || item.deliveryCharge !== Number(cart[i].deliveryCharge || 0))) { cart = latestItems; window.TrendoraCart?.save?.(cart); loadCart(); throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again."); }
-        const wantsWalletCredit = paymentMethod === "WALLET" || document.getElementById("useWalletCredit").checked;
+        const wantsWalletCredit = document.getElementById("useWalletCredit").checked;
         if (wantsWalletCredit) {
           const walletSnap = await getDoc(doc(db, "users", currentUser.uid));
           const availableBalance = Math.max(0, Number(walletSnap.data()?.walletBalance || 0));
           walletBalance = availableBalance;
-          document.getElementById("walletBalanceTag").textContent = formatCurrency(availableBalance);
           updateWalletSplitUI();
         }
         const walletAmount = selectedWalletAmount();
-        if (paymentMethod === "WALLET" && walletAmount < finalTotal) {
-          throw new Error(`Insufficient Trendora Wallet balance. Available: ${formatCurrency(walletBalance)}. Choose Cash on Delivery or Trendora Pay and select “Use my wallet balance first” to split this payment.`);
-        }
         const remainingAmount = Math.max(0, Math.round((finalTotal - walletAmount) * 100) / 100);
-        const orderPaymentMethod = walletAmount > 0 && remainingAmount > 0
-          ? `Wallet + ${paymentMethod === "TRENDORA_PAY" ? "Trendora Pay" : "COD"}`
-          : paymentMethod;
+        const orderPaymentMethod = walletAmount && !remainingAmount ? "Trendora Wallet" : walletAmount ? "Wallet + COD" : "COD";
         const adminUID = "REPLACE_WITH_ADMIN_UID";
         const { orderId, orderRef } = await createNumericOrderRef(adminUID);
         const placedAt = new Date();
@@ -1131,7 +1022,7 @@
           basePaymentMethod: paymentMethod,
           walletAmount,
           remainingAmount,
-          paymentStatus: remainingAmount > 0 && paymentMethod === "TRENDORA_PAY" ? "Payment pending" : remainingAmount === 0 ? "Paid" : `Wallet applied · ${formatCurrency(remainingAmount)} due on delivery`,
+          paymentStatus: remainingAmount === 0 ? "Paid" : `Wallet applied · ${formatCurrency(remainingAmount)} due on delivery`,
           orderStatus: remainingAmount === 0 ? "Confirmed" : "Pending",
           paymentReference: "",
           userUID: currentUser.uid,
@@ -1147,33 +1038,14 @@
         orderData = await createOrderWithInventory(db, orderData, appliedDiscount?.id || "");
         committedOrder = orderData;
 
-        if (paymentMethod === "COD" || paymentMethod === "WALLET") {
+        if (paymentMethod === "COD") {
           awaitingPayment = true;
           await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
-          await window.trendoraDialog.alert(paymentMethod === "WALLET" ? "Order placed and paid with your Trendora Wallet." : walletAmount > 0 ? `Order placed. ${formatCurrency(walletAmount)} was paid from your wallet; ${formatCurrency(remainingAmount)} is due on delivery.` : "Order placed successfully.");
-          window.TrendoraCart?.clear?.();
-          window.location.href = "orders.html";
-        } else if (paymentMethod === "TRENDORA_PAY") {
-          const payment = await processTrendoraPay(orderData, { name, phone, email: currentUser.email });
-          const paymentUpdates = {
-            paymentStatus: "Paid",
-            paymentReference: payment.paymentId,
-            razorpayOrderId: payment.orderId,
-            orderStatus: "Confirmed"
-          };
-          await updateOrderAtomic(db, orderData, paymentUpdates);
-          Object.assign(orderData, paymentUpdates);
-          awaitingPayment = true;
-          await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
-          await window.trendoraDialog.alert("Payment received and verified. Your order has been confirmed.");
+          await window.trendoraDialog.alert(!remainingAmount && walletAmount ? "Order placed and paid with your Trendora Wallet." : walletAmount > 0 ? `Order placed. ${formatCurrency(walletAmount)} was paid from your wallet; ${formatCurrency(remainingAmount)} is due on delivery.` : "Order placed successfully.");
           window.TrendoraCart?.clear?.();
           window.location.href = "orders.html";
         }
       } catch (error) {
-        if (committedOrder && paymentMethod === "TRENDORA_PAY") {
-          try { await updateOrderAtomic(db, committedOrder, { orderStatus: "Cancelled", paymentStatus: "Payment verification failed" }, { restore: true, releaseCoupon: true, refundWalletPayment: true }); }
-          catch (restoreError) { console.error(restoreError); alert("Please check your orders before retrying checkout."); }
-        }
         awaitingPayment = false;
         alert(error.message || "Unable to place order. Please try again.");
       } finally {
