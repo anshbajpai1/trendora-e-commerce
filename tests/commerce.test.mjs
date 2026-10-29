@@ -70,6 +70,20 @@ test('wallet checkout does not change stock or balance when credit is insufficie
  await assert.rejects(()=>createOrderWithInventory(db,{...order('wallet-low'),paymentMethod:'WALLET'},''));
  assert.equal(db.data.get('products/a').quantity,2);assert.equal(db.data.get('users/u').walletBalance,99);
 });
+test('partial wallet payment debits only the selected credit and records the remaining balance',async()=>{
+ const db=database({'products/a':{name:'A',price:100,quantity:2},'users/u':{walletBalance:35}});
+ const placed=await createOrderWithInventory(db,{...order('wallet-partial'),paymentMethod:'Wallet + COD',walletAmount:35},'');
+ assert.equal(placed.walletAmount,35);assert.equal(placed.remainingAmount,65);
+ assert.equal(db.data.get('users/u').walletBalance,0);
+ assert.equal(db.data.get('users/u/walletTransactions/wallet-partial').amount,35);
+});
+test('failed online split payment restores the wallet contribution once',async()=>{
+ const db=database({'products/a':{name:'A',price:100,quantity:1},'users/u':{walletBalance:35}});
+ const saved=await createOrderWithInventory(db,{...order('wallet-reversal'),paymentMethod:'Wallet + Trendora Pay',walletAmount:35},'');
+ await Promise.all([updateOrderAtomic(db,saved,{orderStatus:'Cancelled'},{restore:true,refundWalletPayment:true}),updateOrderAtomic(db,saved,{orderStatus:'Cancelled'},{restore:true,refundWalletPayment:true})]);
+ assert.equal(db.data.get('users/u').walletBalance,35);
+ assert.equal(db.data.get('users/u/walletTransactions/payment-reversal-wallet-reversal').amount,35);
+});
 test('concurrent checkout cannot oversell the last unit',async()=>{
  const db=database({'products/a':{name:'A',price:100,quantity:1}});
  const outcomes=await Promise.allSettled([createOrderWithInventory(db,order('1')),createOrderWithInventory(db,order('2'))]);

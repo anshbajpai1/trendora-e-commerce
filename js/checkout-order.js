@@ -17,13 +17,18 @@ export async function createOrderWithInventory(db,input,codeId='') {
   const discount=discountFor(coupon,subtotal,input.userUID);
  if(Math.round((subtotal-discount+deliveryAmount)*100)!==Math.round(Number(input.totalAmount)*100))throw new Error('Your order total changed. Review the price, delivery and discount before trying again.');
  const totalAmount=Math.round((subtotal-discount+deliveryAmount)*100)/100;
- if(input.paymentMethod==='WALLET'){
+ const requestedWalletAmount=input.paymentMethod==='WALLET'&&input.walletAmount===undefined?totalAmount:Number(input.walletAmount||0);
+ const walletAmount=Math.round(requestedWalletAmount*100)/100;
+ if(!Number.isFinite(walletAmount)||walletAmount<0||walletAmount>totalAmount)throw new Error('The wallet payment amount is invalid.');
+ if(walletAmount>0){
    const balance=Math.max(0,Number(walletUser.data()?.walletBalance||0));
-   if(balance<totalAmount)throw new Error('Your Trendora Wallet balance is not enough for this order.');
-   tx.update(walletRef,{walletBalance:Math.round((balance-totalAmount)*100)/100,walletUpdatedAt:serverTimestamp()});
-   tx.set(walletEntryRef,{type:'debit',amount:totalAmount,balanceAfter:Math.round((balance-totalAmount)*100)/100,orderId:input.id,description:`Order #${input.id}`,createdAt:serverTimestamp()});
+   if(balance<walletAmount)throw new Error('Your Trendora Wallet balance changed and no longer covers the selected wallet amount.');
+   const balanceAfter=Math.round((balance-walletAmount)*100)/100;
+   tx.update(walletRef,{walletBalance:balanceAfter,walletUpdatedAt:serverTimestamp()});
+   tx.set(walletEntryRef,{type:'debit',amount:walletAmount,balanceAfter,orderId:input.id,description:`Order #${input.id}${walletAmount<totalAmount?' · Part payment':''}`,createdAt:serverTimestamp()});
  }
- const order={...input,items,subtotalAmount:subtotal,deliveryAmount,discountAmount:discount,totalAmount,discountCode:codeId,discountReserved:!!coupon,timestamp:serverTimestamp()};
+ const remainingAmount=Math.round((totalAmount-walletAmount)*100)/100;
+ const order={...input,items,subtotalAmount:subtotal,deliveryAmount,discountAmount:discount,totalAmount,walletAmount,remainingAmount,discountCode:codeId,discountReserved:!!coupon,timestamp:serverTimestamp()};
   for(const {ref,product,item} of products)tx.update(ref,{quantity:Number(product.quantity)-item.quantity});
   if(coupon){const update={usedCount:Number(coupon.usedCount||0)+1,lastUsedAt:serverTimestamp(),lastOrderId:input.id};tx.update(couponRef,update);if(privateCoupon?.exists())tx.update(privateCouponRef,update);}
   tx.set(adminRef,order);tx.set(userRef,order);

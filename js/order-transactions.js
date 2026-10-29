@@ -2,7 +2,7 @@ import {doc,runTransaction,serverTimestamp} from 'https://www.gstatic.com/fireba
 import {canCancel} from './commerce.mjs';
 import {existingOrderPaths,orderVersion} from './order-feed.mjs';
 // Both existing order copies and stock change together. Concurrent retries cannot double-restock.
-export async function updateOrderAtomic(db,order,updates,{restore=false,customerCancel=false,releaseCoupon=false}={}) {
+export async function updateOrderAtomic(db,order,updates,{restore=false,customerCancel=false,releaseCoupon=false,refundWalletPayment=false}={}) {
  const paths=existingOrderPaths(order);
  if(!paths.length) throw new Error('This order has no valid owner.');
  return runTransaction(db,async tx=>{
@@ -30,6 +30,18 @@ export async function updateOrderAtomic(db,order,updates,{restore=false,customer
     walletRefund={amount:refundAmount,balanceAfter};
    }
   }
+  let walletPaymentReversal=null;
+  if(refundWalletPayment&&!latest.walletPaymentReversed&&Number(latest.walletAmount||0)>0){
+   const ownerUID=paths.find(path=>path[0]==='users')?.[1]||latest.userUID||order.userUID;
+   if(!ownerUID)throw new Error('This payment has no wallet owner.');
+   const amount=Math.round(Math.max(0,Number(latest.walletAmount||0))*100)/100;
+   const walletRef=doc(db,'users',ownerUID),walletEntryRef=doc(db,'users',ownerUID,'walletTransactions',`payment-reversal-${order.id}`);
+   const [walletSnap,walletEntrySnap]=await Promise.all([tx.get(walletRef),tx.get(walletEntryRef)]);
+   if(!walletEntrySnap.exists()){
+    const balance=Math.max(0,Number(walletSnap.data()?.walletBalance||0));
+    walletPaymentReversal={walletRef,walletEntryRef,amount,balanceAfter:Math.round((balance+amount)*100)/100};
+   }
+  }
   const couponWrites=[];
   if(releaseCoupon && latest.discountReserved && latest.discountCode){
     const ref=doc(db,'discountCodes',latest.discountCode);const snap=await tx.get(ref);
@@ -41,10 +53,14 @@ export async function updateOrderAtomic(db,order,updates,{restore=false,customer
    const amounts=new Map();for(const item of latest.items||[]){const qty=Number(item.quantity);if(item.id&&Number.isSafeInteger(qty)&&qty>0)amounts.set(item.id,(amounts.get(item.id)||0)+qty);}
    for(const [id,quantity] of amounts){const ref=doc(db,'products',id);const snap=await tx.get(ref);if(snap.exists())stock.push({ref,quantity:Number(snap.data().quantity||0)+quantity});}
   }
-  const stamped={...updates,updatedAt:new Date().toISOString(),...(completingReturn?{refundMode,returnedAt:new Date().toISOString(),refundStatus:refundToWallet?'Wallet credited':'Original payment refund pending',...(refundToWallet?{walletRefundedAt:new Date().toISOString(),walletRefundAmount:walletRefund?.amount??Math.round(Math.max(0,Number(latest.totalAmount||0))*100)/100}:{})}:{}),...(restore?{restored:true}:{}),...(releaseCoupon?{discountReserved:false}:{})};
+  const stamped={...updates,updatedAt:new Date().toISOString(),...(completingReturn?{refundMode,returnedAt:new Date().toISOString(),refundStatus:refundToWallet?'Wallet credited':'Original payment refund pending',...(refundToWallet?{walletRefundedAt:new Date().toISOString(),walletRefundAmount:walletRefund?.amount??Math.round(Math.max(0,Number(latest.totalAmount||0))*100)/100}:{})}:{}),...(restore?{restored:true}:{}),...(releaseCoupon?{discountReserved:false}:{}),...(walletPaymentReversal?{walletPaymentReversed:true,walletPaymentReversedAt:new Date().toISOString()}: {})};
   if(walletWrite){
    tx.set(walletWrite.walletRef,{walletBalance:walletWrite.balanceAfter,walletUpdatedAt:serverTimestamp()},{merge:true});
    tx.set(walletWrite.walletEntryRef,{type:'credit',amount:walletWrite.refundAmount,balanceAfter:walletWrite.balanceAfter,orderId:order.id,description:'Return refund · Paid by Trendora',source:'trendora',createdAt:serverTimestamp()});
+  }
+  if(walletPaymentReversal){
+   tx.set(walletPaymentReversal.walletRef,{walletBalance:walletPaymentReversal.balanceAfter,walletUpdatedAt:serverTimestamp()},{merge:true});
+   tx.set(walletPaymentReversal.walletEntryRef,{type:'credit',amount:walletPaymentReversal.amount,balanceAfter:walletPaymentReversal.balanceAfter,orderId:order.id,description:'Payment reversal · Online payment not completed',source:'trendora',createdAt:serverTimestamp()});
   }
   for(const coupon of couponWrites)tx.update(coupon.ref,{usedCount:coupon.usedCount});
   for(const product of stock)tx.update(product.ref,{quantity:product.quantity});
