@@ -164,7 +164,7 @@
   function buildCustomerNav() {
     return `
       <nav class="trendora-navbar" aria-label="Main navigation">
-        <a class="trendora-brand" href="index.html" aria-label="Trendora home"><i class="brand-mark" aria-hidden="true">t</i><span>trendora</span></a>
+        <a class="trendora-brand" href="index.html" aria-label="Trendora home"><img class="brand-logo" src="assets/trendora-logo.png" alt="Trendora"></a>
         <div class="nav-center"><a href="index.html#collection" class="${page === 'index.html' ? 'active' : ''}">Shop all</a><a href="wishlist.html">Saved</a><a href="index.html#edit">The everyday edit</a><a href="track-order.html" class="${page === 'track-order.html' ? 'active' : ''}">Track an order</a><a href="about.html" class="${page === 'about.html' ? 'active' : ''}">About us</a><a href="contact.html" class="${page === 'contact.html' ? 'active' : ''}">Contact</a></div>
         <div class="trendora-navlinks">
           <button class="nav-search" id="navSearchToggle" type="button" aria-label="Search products" aria-expanded="false" aria-controls="globalSearchPanel"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m16 16 5 5"/></svg><span>Search</span></button>
@@ -208,8 +208,8 @@
     if (page === "admin-login.html") return "";
     return `
       <nav class="trendora-navbar admin" aria-label="Admin navigation">
-        <a class="trendora-brand" href="admin-panel.html">
-          <span>Trendora Admin</span>
+        <a class="trendora-brand trendora-brand--admin" href="admin-panel.html" aria-label="Trendora Admin">
+          <img class="brand-logo" src="assets/trendora-logo.png" alt="Trendora">
           <small>Store controls</small>
         </a>
         <div class="trendora-navlinks">
@@ -357,7 +357,7 @@
     footer.className = "trendora-footer";
     footer.innerHTML = `
       <div class="trendora-footer__inner">
-        <section class="trendora-footer__brand"><a class="trendora-footer__logo" href="index.html">trendora<span style="color:#879b61">.</span></a><p>Online catalog, checkout and order tracking.</p></section>
+        <section class="trendora-footer__brand"><a class="trendora-footer__logo" href="index.html" aria-label="Trendora home"><img src="assets/trendora-logo.png" alt="Trendora"></a><p>Online catalog, checkout and order tracking.</p></section>
         <div class="footer-column"><h2>${adminPages.has(page) ? "Manage store" : "Shop"}</h2>${adminPages.has(page) ? '<a href="admin-panel.html">Products</a><a href="admin-users.html">Customers</a><a href="customers-orders.html">Orders</a>' : '<a href="index.html#collection">Products</a><a href="search.html">Search</a><a href="cart.html">Shopping bag</a>'}</div>
         <div class="footer-column"><h2>Your Trendora</h2><a href="about.html">About us</a><a href="contact.html">Contact</a><a href="track-order.html">Track an order</a><a href="profile.html">My account</a></div>
         <div class="footer-note"><b>Store policies</b><p><a href="terms.html">Terms &amp; Conditions</a><br><a href="privacy.html">Privacy Policy</a><br><a href="returns.html">Returns &amp; Refunds</a></p><span>INR ₹ · India</span></div>
@@ -604,7 +604,7 @@
     if(adminPages.has(page) && page !== 'admin-login.html') {
       document.body.classList.add('admin-workspace');
       const sidebar=document.createElement('aside'); sidebar.className='admin-sidebar'; sidebar.setAttribute('aria-label','Store administration');
-      sidebar.innerHTML=`<div class="admin-store"><span class="store-initial">t.</span><div><strong>Trendora store</strong><small>Store management</small></div></div><span class="sidebar-label">WORKSPACE</span>${navLink('admin-panel.html','<span>▦</span> Products & overview')}${navLink('admin-users.html','<span>◎</span> Customers & offers')}${navLink('customers-orders.html','<span>▤</span> Order management')}<div class="sidebar-bottom"><span class="sidebar-label">YOUR STOREFRONT</span><a href="index.html">Visit store <span>↗</span></a><p>Everything your store needs.<br>All in one place.</p></div>`;
+      sidebar.innerHTML=`<div class="admin-store"><img class="store-logo" src="assets/trendora-logo.png" alt="Trendora"><div><strong>Trendora store</strong><small>Store management</small></div></div><span class="sidebar-label">WORKSPACE</span>${navLink('admin-panel.html','<span>▦</span> Products & overview')}${navLink('admin-users.html','<span>◎</span> Customers & offers')}${navLink('customers-orders.html','<span>▤</span> Order management')}<div class="sidebar-bottom"><span class="sidebar-label">YOUR STOREFRONT</span><a href="index.html">Visit store <span>↗</span></a><p>Everything your store needs.<br>All in one place.</p></div>`;
       document.body.prepend(sidebar);
       const titles={'admin-panel.html':['Catalog overview','Manage your products, inventory and featured collection.'],'admin-users.html':['Customers & offers','Know your customers. Make every offer count.']};
       const main=document.querySelector('main');
