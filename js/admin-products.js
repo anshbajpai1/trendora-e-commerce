@@ -1,14 +1,43 @@
 import {auth,db} from './firebase-admin-client.js';
 import {onAuthStateChanged,setPersistence,browserSessionPersistence} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import {collection,onSnapshot,collectionGroup,doc,addDoc,updateDoc,deleteDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import {collection,onSnapshot,collectionGroup,doc,addDoc,setDoc,updateDoc,deleteDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {escapeHTML,validateProduct} from './commerce.mjs';
 const $=id=>document.getElementById(id);
 const money=new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
-let products=[],editingId=null,draftImages=[],unsubscribers=[],inventoryPage=1,draftImageSequence=0;
+let products=[],categories=[],editingId=null,draftImages=[],unsubscribers=[],inventoryPage=1,draftImageSequence=0;
 const INVENTORY_PAGE_SIZE=8;
 const fields={name:$('pname'),price:$('pprice'),quantity:$('pquantity'),returnDays:$('preturnDays'),deliveryCharge:$('pdeliveryCharge'),description:$('pdesc'),category:$('pcategory'),featured:$('pfeatured')};
 const imagesFor=p=>Array.isArray(p.imageUrls)&&p.imageUrls.filter(Boolean).length?p.imageUrls.filter(Boolean):p.imageUrl?[p.imageUrl]:[];
 function message(text,error=false){$('productFormMessage').textContent=text;$('productFormMessage').classList.toggle('error',error);}
+function categoryMessage(text,error=false){$('categoryMessage').textContent=text;$('categoryMessage').classList.toggle('error',error);}
+function categoryId(name){return encodeURIComponent(name.trim().toLowerCase()).replace(/%/g,'_');}
+function allCategoryNames(){return [...new Set([...categories.map(category=>category.name),...products.map(product=>String(product.category||'').trim()).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));}
+function renderCategoryOptions(selected=''){
+ const value=String(selected||'').trim();
+ const names=allCategoryNames();
+ if(value&&!names.includes(value))names.push(value);
+ fields.category.innerHTML='<option value="">Choose a category</option>'+names.sort((a,b)=>a.localeCompare(b)).map(name=>`<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('');
+ fields.category.value=value;
+}
+function renderCategories(){
+ const names=allCategoryNames();
+ const selected=fields.category.value;
+ renderCategoryOptions(selected);
+ const host=$('categoryList');
+ host.innerHTML=names.length?'':'<p class="empty">No categories yet. Add one to start organizing the catalog.</p>';
+ for(const name of names){
+  const count=products.filter(product=>String(product.category||'').trim()===name).length;
+  const row=document.createElement('div');row.className='category-row';
+  row.innerHTML=`<div><strong>${escapeHTML(name)}</strong><span>${count} product${count===1?'':'s'}</span></div><button type="button" class="delete-category-btn" ${categories.some(category=>category.name===name)?'':'disabled title="Legacy category: assign products then recreate it to manage it here."'}>Remove</button>`;
+  const remove=row.querySelector('.delete-category-btn');
+  if(!remove.disabled)remove.onclick=async()=>{
+   if(!await window.trendoraDialog?.confirm?.(`Remove “${name}” from the category list? Products in it will not be deleted.`))return;
+   remove.disabled=true;
+   try{await deleteDoc(doc(db,'categories',categoryId(name)));categoryMessage(`Removed “${name}”. Products were kept.`);}catch(error){categoryMessage(error.message||'Could not remove category.',true);remove.disabled=false;}
+  };
+  host.appendChild(row);
+ }
+}
 async function confirmProductDelete(productName){
  const prompt=`Delete “${productName}” from the catalog? Existing order records will remain.`;
  if(typeof window.trendoraDialog?.confirm==='function')return window.trendoraDialog.confirm(prompt);
@@ -23,8 +52,8 @@ function clearDraftImages(){for(const image of draftImages)if(image.objectUrl)UR
 function renderDraftImages(){const host=$('preview');host.replaceChildren();for(const image of draftImages){const card=document.createElement('div');card.className=`image-draft${image.cover?' is-cover':''}`;card.innerHTML=`${image.cover?'<span class="image-draft__cover">COVER</span>':''}<img src="${escapeHTML(image.url)}" alt="Product image preview"><div class="image-draft__tools"><button type="button" class="cover-image-btn" ${image.cover?'disabled':''}>${image.cover?'Cover photo':'Make cover'}</button><button type="button" class="remove-image-btn">Remove</button></div>`;card.querySelector('.cover-image-btn').onclick=()=>{draftImages.forEach(item=>item.cover=item.id===image.id);renderDraftImages();};card.querySelector('.remove-image-btn').onclick=()=>{if(draftImages.length===1){message('A product needs at least one photo.',true);return;}if(image.objectUrl)URL.revokeObjectURL(image.url);draftImages=draftImages.filter(item=>item.id!==image.id);if(!draftImages.some(item=>item.cover))draftImages[0].cover=true;renderDraftImages();};host.appendChild(card);}host.style.display=draftImages.length?'grid':'none';}
 function setExistingDraftImages(urls,coverUrl=''){clearDraftImages();draftImages=urls.map((url,index)=>({id:`existing-${++draftImageSequence}`,url,cover:url===coverUrl||(index===0&&!coverUrl),objectUrl:false}));renderDraftImages();}
 function addSelectedImages(files){if(!files.length)return;if(draftImages.length+files.length>6||files.some(file=>!file.type.startsWith('image/')||file.size>8*1024*1024)){message('Choose up to 6 images, no larger than 8 MB each.',true);return;}for(const file of files){const url=URL.createObjectURL(file);draftImages.push({id:`upload-${++draftImageSequence}`,url,file,objectUrl:true,cover:!draftImages.length});}renderDraftImages();}
-function reset(){editingId=null;Object.values(fields).forEach(f=>f.type==='checkbox'?f.checked=false:f.value='');$('pimage').value='';clearDraftImages();renderDraftImages();$('formTitle').textContent='Add product';$('addBtn').innerHTML='<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Add Product';$('cancelEditBtn').hidden=true;}
-function edit(product){editingId=product.id;for(const [key,field] of Object.entries(fields)){if(field.type==='checkbox')field.checked=product[key]===true;else field.value=product[key]??'';}$('pimage').value='';setExistingDraftImages(imagesFor(product),product.imageUrl);$('formTitle').textContent='Edit product';$('addBtn').textContent='Save changes';$('cancelEditBtn').hidden=false;message('Editing '+product.name+'. Choose a cover photo or remove images, then save.');fields.name.scrollIntoView({behavior:'smooth',block:'center'});fields.name.focus();}
+function reset(){editingId=null;Object.values(fields).forEach(f=>f.type==='checkbox'?f.checked=false:f.value='');renderCategoryOptions();$('pimage').value='';clearDraftImages();renderDraftImages();$('formTitle').textContent='Add product';$('addBtn').innerHTML='<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Add Product';$('cancelEditBtn').hidden=true;}
+function edit(product){editingId=product.id;for(const [key,field] of Object.entries(fields)){if(field.type==='checkbox')field.checked=product[key]===true;else if(key!=='category')field.value=product[key]??'';}renderCategoryOptions(product.category);$('pimage').value='';setExistingDraftImages(imagesFor(product),product.imageUrl);$('formTitle').textContent='Edit product';$('addBtn').textContent='Save changes';$('cancelEditBtn').hidden=false;message('Editing '+product.name+'. Choose a cover photo or remove images, then save.');fields.name.scrollIntoView({behavior:'smooth',block:'center'});fields.name.focus();}
 function getPageNumbers(currentPage,totalPages){
  const start=Math.max(1,Math.min(currentPage-2,totalPages-4));
  const end=Math.min(totalPages,start+4);
@@ -71,6 +100,13 @@ function render(){
 }
 $('inventorySearch').addEventListener('input',()=>{inventoryPage=1;render();});$('inventoryFilter').addEventListener('change',()=>{inventoryPage=1;render();});$('cancelEditBtn').onclick=()=>{reset();message('Edit cancelled.');};
 $('pimage').addEventListener('change',()=>{addSelectedImages([...$('pimage').files]);$('pimage').value='';});
+$('categoryForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const name=$('categoryName').value.trim().replace(/\s+/g,' ');
+ if(!name||name.length>60){categoryMessage('Enter a category name of 1–60 characters.',true);return;}
+ const button=$('addCategoryBtn');button.disabled=true;
+ try{await setDoc(doc(db,'categories',categoryId(name)),{name,createdAt:serverTimestamp()},{merge:true});$('categoryName').value='';categoryMessage(`“${name}” is ready for products.`);}catch(error){categoryMessage(error.message||'Could not add category.',true);}finally{button.disabled=false;}
+});
 $('addBtn').addEventListener('click',async()=>{
  if($('addBtn').disabled)return;
  try{
@@ -90,7 +126,8 @@ await setPersistence(auth,browserSessionPersistence);
 onAuthStateChanged(auth,user=>{
  unsubscribers.forEach(stop=>stop());unsubscribers=[];
  if(!user||user.email?.toLowerCase()!=='anshbajpai3@gmail.com'){location.replace('admin-login.html');return;}
- unsubscribers.push(onSnapshot(collection(db,'products'),snapshot=>{products=snapshot.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));$('lowStockCount').textContent=products.filter(product=>{const quantity=Number(product.quantity||0);return quantity>0&&quantity<=5;}).length;render();},error=>{$('productList').setAttribute('aria-busy','false');$('productList').innerHTML='<div class="empty">Could not load inventory. Reload to try again.</div>';message(error.message,true);}));
+ unsubscribers.push(onSnapshot(collection(db,'products'),snapshot=>{products=snapshot.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));$('lowStockCount').textContent=products.filter(product=>{const quantity=Number(product.quantity||0);return quantity>0&&quantity<=5;}).length;renderCategories();render();},error=>{$('productList').setAttribute('aria-busy','false');$('productList').innerHTML='<div class="empty">Could not load inventory. Reload to try again.</div>';message(error.message,true);}));
+ unsubscribers.push(onSnapshot(collection(db,'categories'),snapshot=>{categories=snapshot.docs.map(d=>({id:d.id,...d.data()})).filter(category=>typeof category.name==='string'&&category.name.trim()).map(category=>({...category,name:category.name.trim()}));renderCategories();},error=>{categoryMessage(error.message||'Could not load categories.',true);}));
  unsubscribers.push(onSnapshot(collection(db,'users'),snapshot=>$('userCount').textContent=snapshot.size,()=>{$('userCount').textContent='—';}));
  unsubscribers.push(onSnapshot(collection(db,'discountCodes'),snapshot=>{const codes=snapshot.docs.map(d=>d.data());$('activeCodeCount').textContent=codes.filter(c=>c.status!=='disabled'&&(!c.expiresAt||new Date(c.expiresAt+'T23:59:59+05:30')>=new Date())&&(!c.maxUses||Number(c.usedCount||0)<Number(c.maxUses))).length;$('redemptionCount').textContent=codes.reduce((n,c)=>n+Number(c.usedCount||0),0);},()=>{$('activeCodeCount').textContent='—';$('redemptionCount').textContent='—';}));
  unsubscribers.push(onSnapshot(collectionGroup(db,'orders'),snapshot=>{

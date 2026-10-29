@@ -28,6 +28,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
       currentUser = user || null;
       updateCartCount();
     });
+    loadCategories();
     loadProducts();
     return true;
   }).catch(error => { console.warn("Account services unavailable", error); return false; });
@@ -60,6 +61,8 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
   let ordersData = [];
   let productsData = [];
   let productsUnsubscribe = null;
+  let categoriesUnsubscribe = null;
+  let categoriesData = [];
   let productsLoaded = false;
   let productsError = false;
   let catalogFallbackTimer = null;
@@ -70,6 +73,14 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
   let pendingReturnUrl = null;
   const WISHLIST_KEY = "trendora-wishlist";
   const RECENT_KEY = "trendora-recent-products";
+  let addToCartUntil = 0;
+
+  function categoryNames(){
+    return [...new Set([
+      ...categoriesData.map(category => String(category.name || "").trim()),
+      ...productsData.map(product => String(product.category || "").trim())
+    ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }
 
   function readProductIds(key){
     try { const values = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(values) ? values.map(String) : []; }
@@ -244,6 +255,10 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
 
   // CART
   function addItemToCart(id,name,price,imageUrl,imageUrls=[],stock=Infinity,deliveryCharge=0){
+    const now = Date.now();
+    if(now < addToCartUntil) return;
+    // Stops accidental double taps without slowing normal, deliberate additions.
+    addToCartUntil = now + 350;
     if(!currentUser){
       openAuthModal({mode:"login"});
       return;
@@ -280,6 +295,18 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
     renderProducts();
     hidePageLoader();
     if (source === "saved catalog") shopCount.textContent += " · Saved copy; reconnect for latest availability";
+  }
+  function loadCategories(){
+    if(categoriesUnsubscribe || !db) return;
+    categoriesUnsubscribe = onSnapshot(collection(db, "categories"), snapshot => {
+      categoriesData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+      renderCategories();
+    }, error => {
+      // Products still provide legacy category tabs if the new collection is unavailable.
+      console.warn("Category list unavailable", error);
+      categoriesData = [];
+      renderCategories();
+    });
   }
   async function loadCatalogFallback(){
     if (catalogFallbackRequest) return catalogFallbackRequest;
@@ -510,7 +537,8 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
     });
   }
   function renderCategories(){
-    const categories = ["all", ...new Set(productsData.map(p => p.category || "Other"))];
+    const categories = ["all", ...categoryNames()];
+    if(activeCategory !== "all" && !categories.includes(activeCategory)) activeCategory = "all";
     const host = document.getElementById("categoryTabs");
     host.replaceChildren();
     categories.forEach(category => {

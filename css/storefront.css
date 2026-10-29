@@ -45,6 +45,17 @@ body.trendora-auth-page{align-items:stretch;justify-content:flex-start;min-heigh
 .trendora-search-panel[hidden]{display:none!important}.trendora-search-form{display:grid;grid-template-columns:22px minmax(0,1fr) auto 38px;align-items:center;gap:14px;max-width:1120px;margin:auto;padding:10px 12px 10px 18px;background:#fff;border:1px solid #daddd1;border-radius:6px;box-shadow:0 8px 30px #27301f0a}.trendora-search-form>svg{width:22px;height:22px;fill:none;stroke:#657052;stroke-width:1.6}.trendora-search-form input{width:100%;min-width:0;padding:10px 0;border:0;outline:0;background:transparent;color:#292b25;font-size:15px}.trendora-search-form input:focus-visible{outline:0}.trendora-search-submit{border:0;border-radius:4px;background:#343c2b;color:#fff;padding:12px 22px;font-size:12px;font-weight:700;cursor:pointer}.trendora-search-close{width:36px;height:36px;border:0;background:transparent;color:#6e7563;font-size:26px;line-height:1;cursor:pointer}.trendora-search-panel>p{max-width:1120px;margin:10px auto 0;padding-left:2px;color:#858b7a;font-size:10px;letter-spacing:.02em}.search-panel-open:after{content:'';position:fixed;inset:var(--trendora-search-top,90px) 0 0;z-index:1180;background:#20251a12;pointer-events:none}
 @media(max-width:700px){.trendora-search-panel{padding:14px 14px 16px}.trendora-search-form{grid-template-columns:20px minmax(0,1fr) auto 32px;gap:8px;padding:7px 7px 7px 12px}.trendora-search-submit{padding:10px 13px}.trendora-search-panel>p{display:none}}
 
+/* Mobile interaction and rendering budget: keep navigation reliably tappable and
+   avoid expensive fixed translucent layers while a phone is scrolling. */
+@media(max-width:700px){
+  .trendora-navbar{position:sticky;top:0;z-index:4000;isolation:isolate}
+  .trendora-icon-btn,.trendora-navlinks a,.trendora-navlinks button{min-width:44px;min-height:44px;touch-action:manipulation}
+  .trendora-cart-badge{pointer-events:none}
+  .trendora-navbar,.trendora-search-panel,.trendora-profile-dropdown,.trendora-auth-dialog,.trendora-search-form{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  .store-home .product,.shop-path,.solid-link,.addCartBtn,.detailsBtn{touch-action:manipulation}
+}
+.category-manager{margin-top:18px}.category-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}.category-form label{grid-column:1/-1}.category-list{display:grid;gap:8px;margin-top:14px}.category-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.45)}.category-row strong,.category-row span{display:block}.category-row strong{font-size:13px}.category-row span{font-size:11px;color:var(--muted);margin-top:3px}.delete-category-btn{border:1px solid #e7c9c3;background:#fff;color:#a44b40;border-radius:4px;padding:8px 10px;font:600 11px inherit;cursor:pointer}.delete-category-btn:disabled{opacity:.45;cursor:not-allowed}@media(max-width:640px){.category-form{grid-template-columns:1fr}.category-form .btn{width:100%}.category-row{align-items:flex-start}.category-row .delete-category-btn{flex:0 0 auto}}
+
 /* Glass system — shared across storefront, account and administration pages. */
 :root{
   --glass-surface:rgba(255,255,255,.66);
