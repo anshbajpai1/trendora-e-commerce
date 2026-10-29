@@ -113,7 +113,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
     setTimeout(()=>notification.classList.remove("show"),2500);
   }
   function updateCartCount(){
-    const cart = normalizeCart(localStorage.getItem("cart") || "[]");
+    const cart = normalizeCart(window.TrendoraCart?.get?.() || []);
     window.dispatchEvent(new Event("cart-updated"));
     if (cartCountElement) cartCountElement.innerText = cart.reduce((sum,i)=>sum+(i.quantity||1),0);
   }
@@ -253,7 +253,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
       showNotification(`"${name}" is out of stock`);
       return;
     }
-    let cart = normalizeCart(localStorage.getItem("cart") || "[]");
+    let cart = normalizeCart(window.TrendoraCart?.get?.() || []);
     const exist = cart.find(i=>i.id===id);
     if(exist) {
       if (Number.isFinite(available) && Number(exist.quantity || 1) >= available) {
@@ -264,7 +264,7 @@ import { normalizeCart, fetchProducts, readCachedProducts } from "./commerce.mjs
       exist.deliveryCharge = Math.max(0, Number(deliveryCharge) || 0);
     }
     else cart.push({id,name,price,quantity:1,imageUrl,imageUrls,deliveryCharge:Math.max(0,Number(deliveryCharge)||0)});
-    localStorage.setItem("cart",JSON.stringify(cart));
+    window.TrendoraCart?.save?.(cart);
     updateCartCount();
     showNotification(`"${name}" added to cart`);
   }

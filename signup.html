@@ -206,7 +206,8 @@
           addresses: []
         });
 
-        await window.trendoraDialog.alert("Signup successful!");
+        sessionStorage.setItem("trendora-auth-notice", "Account created successfully. Please log in to continue.");
+        if (window.trendoraDialog?.alert) await window.trendoraDialog.alert("Signup successful!");
         window.location.href = "login.html";
       } catch (error) {
         alert("Error: " + error.message);

@@ -175,6 +175,7 @@ async function login() {
 
     const userData = querySnapshot.docs[0].data();
     await signInWithEmailAndPassword(auth, userData.email, password);
+    sessionStorage.setItem("trendora-auth-notice", "Login successful. Welcome back!");
     window.location.href = returnUrl;
 
   } catch (error) {

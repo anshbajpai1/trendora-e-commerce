@@ -26,19 +26,48 @@
   let authReadyResolve = null;
   const authReady = new Promise(resolve => { authReadyResolve = resolve; });
   let pendingReturnUrl = pagePath;
+  const AUTH_NOTICE_KEY = "trendora-auth-notice";
 
   const icons = {
     cart: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h8.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>',
     user: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21a7 7 0 0 0-14 0"/><circle cx="12" cy="8" r="4"/></svg>'
   };
 
-  function cartCount() {
+  const CART_KEY_PREFIX = "trendora-cart:";
+
+  function cartStorageKey(user = authInstance?.currentUser || currentUser) {
+    return user?.uid ? `${CART_KEY_PREFIX}${user.uid}` : null;
+  }
+
+  function readUserCart() {
+    const key = cartStorageKey();
+    if (!key) return [];
     try {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      return cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
+      const cart = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(cart) ? cart : [];
     } catch {
-      return 0;
+      return [];
     }
+  }
+
+  function saveUserCart(cart) {
+    const key = cartStorageKey();
+    if (!key) return false;
+    localStorage.setItem(key, JSON.stringify(Array.isArray(cart) ? cart : []));
+    window.dispatchEvent(new Event("cart-updated"));
+    return true;
+  }
+
+  function clearUserCart() {
+    const key = cartStorageKey();
+    if (!key) return false;
+    localStorage.removeItem(key);
+    window.dispatchEvent(new Event("cart-updated"));
+    return true;
+  }
+
+  function cartCount() {
+    return readUserCart().reduce((sum, item) => sum + Number(item.quantity || 1), 0);
   }
 
   function isActiveHref(href) {
@@ -79,6 +108,58 @@
   }
 
   function escapeText(value) { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function showAuthNotice(message) {
+    if (!message) return;
+    let notice = document.getElementById("trendoraAuthNotice");
+    if (!notice) {
+      notice = document.createElement("div");
+      notice.id = "trendoraAuthNotice";
+      notice.className = "trendora-auth-notice";
+      notice.setAttribute("role", "status");
+      notice.setAttribute("aria-live", "polite");
+      document.body.appendChild(notice);
+    }
+    notice.innerHTML = '<span class="trendora-auth-notice__icon" aria-hidden="true">✓</span><span class="trendora-auth-notice__message"></span><span class="trendora-auth-notice__progress" aria-hidden="true"></span>';
+    notice.querySelector(".trendora-auth-notice__message").textContent = message;
+    notice.classList.add("show");
+    clearTimeout(showAuthNotice.timer);
+    showAuthNotice.timer = setTimeout(() => notice.classList.remove("show"), 4200);
+  }
+
+  function setButtonLoading(button, loading, persistent = false) {
+    if (!button) return;
+    if (loading) {
+      button.classList.add("trendora-button-loading");
+      button.setAttribute("aria-busy", "true");
+      if (persistent) button.dataset.loadingPersistent = "true";
+      return;
+    }
+    delete button.dataset.loadingPersistent;
+    button.classList.remove("trendora-button-loading");
+    button.removeAttribute("aria-busy");
+  }
+
+  function pulseButtonLoading(button) {
+    if (!button || button.dataset.loadingPersistent === "true" || button.disabled || button.dataset.loader === "off") return;
+    setButtonLoading(button, true);
+    clearTimeout(button._trendoraLoadingTimer);
+    button._trendoraLoadingTimer = setTimeout(() => setButtonLoading(button, false), 650);
+  }
+
+  function queueAuthNotice(message) {
+    try { sessionStorage.setItem(AUTH_NOTICE_KEY, message); } catch (_) { showAuthNotice(message); }
+  }
+
+  function displayQueuedAuthNotice() {
+    try {
+      const message = sessionStorage.getItem(AUTH_NOTICE_KEY);
+      if (message) {
+        sessionStorage.removeItem(AUTH_NOTICE_KEY);
+        showAuthNotice(message);
+      }
+    } catch (_) {}
+  }
 
   function buildCustomerNav() {
     return `
@@ -264,6 +345,7 @@
           const { authMod } = await ensureFirebase();
           await authMod.signOut(authInstance);
         } finally {
+          queueAuthNotice("Logged out successfully. See you again soon!");
           window.location.href = adminPages.has(page) ? "admin-login.html" : "index.html";
         }
       });
@@ -313,6 +395,7 @@
           <input aria-label="Email or phone" id="modalLoginInput" type="text" placeholder="Email or phone" autocomplete="username">
           <input aria-label="Password" id="modalLoginPassword" type="password" placeholder="Password" autocomplete="current-password">
           <button type="submit">Login</button>
+          <a class="trendora-auth-forgot" href="forgot-password.html">Forgot password?</a>
         </form>
         <form id="trendoraSignupForm" class="trendora-auth-form" hidden>
           <h2>Create account</h2>
@@ -379,10 +462,12 @@
 
   async function submitLogin(event) {
     event.preventDefault();
+    const submitButton = event.submitter || document.querySelector("#trendoraLoginForm button[type='submit']");
     const input = document.getElementById("modalLoginInput").value.trim();
     const password = document.getElementById("modalLoginPassword").value;
     if (!input || !password) { alert("Please enter email/phone and password."); return; }
     try {
+      setButtonLoading(submitButton, true, true);
       const { authMod, dbMod } = await ensureFirebase();
       let email = input;
       if (!input.includes("@")) {
@@ -393,14 +478,20 @@
       }
       await authMod.signInWithEmailAndPassword(authInstance, email, password);
       closeAuthModal();
-      if (pendingReturnUrl && pendingReturnUrl !== pagePath) window.location.href = pendingReturnUrl;
+      if (pendingReturnUrl && pendingReturnUrl !== pagePath) {
+        queueAuthNotice("Login successful. Welcome back!");
+        window.location.href = pendingReturnUrl;
+      } else showAuthNotice("Login successful. Welcome back!");
     } catch (error) {
       alert("Login failed: " + (error.message || "Please try again."));
+    } finally {
+      setButtonLoading(submitButton, false);
     }
   }
 
   async function submitSignup(event) {
     event.preventDefault();
+    const submitButton = event.submitter || document.querySelector("#trendoraSignupForm button[type='submit']");
     const name = document.getElementById("modalSignupName").value.trim();
     const email = document.getElementById("modalSignupEmail").value.trim();
     const phone = document.getElementById("modalSignupPhone").value.trim();
@@ -408,6 +499,7 @@
     if (!name || !email || !phone || !password) { alert("Please fill all fields."); return; }
     if (!/^[0-9]{10}$/.test(phone)) { alert("Please enter a valid 10-digit phone number."); return; }
     try {
+      setButtonLoading(submitButton, true, true);
       const { authMod, dbMod } = await ensureFirebase();
       const credential = await authMod.createUserWithEmailAndPassword(authInstance, email, password);
       await authMod.updateProfile(credential.user, { displayName: name });
@@ -415,9 +507,14 @@
       await dbMod.setDoc(dbMod.doc(dbInstance, "users", credential.user.uid), profile, { merge: true });
       await dbMod.setDoc(dbMod.doc(dbInstance, "users", credential.user.uid, "profile", "info"), profile, { merge: true });
       closeAuthModal();
-      if (pendingReturnUrl && pendingReturnUrl !== pagePath) window.location.href = pendingReturnUrl;
+      if (pendingReturnUrl && pendingReturnUrl !== pagePath) {
+        queueAuthNotice("Account created successfully. Welcome to Trendora!");
+        window.location.href = pendingReturnUrl;
+      } else showAuthNotice("Account created successfully. Welcome to Trendora!");
     } catch (error) {
       alert("Signup failed: " + (error.message || "Please try again."));
+    } finally {
+      setButtonLoading(submitButton, false);
     }
   }
 
@@ -441,6 +538,17 @@
     }
   };
 
+  // Carts are deliberately scoped to the authenticated Firebase UID. Do not fall
+  // back to the historic shared `cart` key: it can belong to a different account.
+  window.TrendoraCart = {
+    get: readUserCart,
+    save: saveUserCart,
+    clear: clearUserCart,
+    get key() { return cartStorageKey(); }
+  };
+  window.TrendoraUI = { setButtonLoading };
+  window.dispatchEvent(new Event("trendora-cart-ready"));
+
   async function initAuthAwareLayout() {
     try {
       const { authMod } = await ensureFirebase();
@@ -448,6 +556,7 @@
         currentUser = user;
         authStateReady = true;
         authReadyResolve?.(user);
+        window.dispatchEvent(new Event("cart-updated"));
         renderNav();
         renderFooter();
       });
@@ -461,6 +570,7 @@
   }
 
   document.addEventListener("click", event => {
+    pulseButtonLoading(event.target.closest("button"));
     if (!event.target.closest(".trendora-profile-menu")) {
       document.getElementById("profileDropdown")?.classList.remove("open");
       document.getElementById("profileMenuBtn")?.setAttribute("aria-expanded", "false");
@@ -472,6 +582,7 @@
       document.getElementById("navSearchToggle")?.setAttribute("aria-expanded", "false");
     }
   });
+  document.addEventListener("submit", event => pulseButtonLoading(event.submitter));
   document.addEventListener("keydown", event => {
     if(event.key === "Escape") {
       if(document.getElementById("trendoraAuthModal")?.classList.contains("open")) closeAuthModal();
@@ -501,6 +612,7 @@
     }
     renderNav();
     renderFooter();
+    displayQueuedAuthNotice();
     initAuthAwareLayout();
   }
 

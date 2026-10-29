@@ -189,10 +189,10 @@ import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
   const cartSubtitle = document.getElementById("cartSubtitle");
   const toast = document.getElementById("cartToast");
 
-  function getCart() { return normalizeCart(localStorage.getItem("cart") || "[]"); }
+  function getCart() { return normalizeCart(window.TrendoraCart?.get?.() || []); }
 
   function saveCart(cart) {
-    localStorage.setItem("cart", JSON.stringify(cart));
+    window.TrendoraCart?.save?.(cart);
     window.TrendoraAuth?.refreshLayout?.();
   }
 
@@ -292,7 +292,7 @@ import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
 
     document.getElementById("clearCartBtn").addEventListener("click", async () => {
       if (!await window.trendoraDialog.confirm("Clear all items from cart?")) return;
-      localStorage.removeItem("cart");
+      window.TrendoraCart?.clear?.();
       renderCart();
       showToast("Cart cleared.");
     });
@@ -350,7 +350,13 @@ import { normalizeCart, escapeHTML } from "./js/commerce.mjs";
     });
   }
 
-  renderCart();
+  async function bootCart() {
+    if (!window.TrendoraCart) await new Promise(resolve => window.addEventListener("trendora-cart-ready", resolve, { once: true }));
+    await window.TrendoraAuth?.ready;
+    renderCart();
+  }
+  window.addEventListener("cart-updated", renderCart);
+  bootCart();
 })();
 </script>
 <script src="js/main.js" defer></script>

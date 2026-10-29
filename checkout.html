@@ -622,7 +622,7 @@
     const auth = getAuth(app);
 
     let currentUser = null;
-    let cart = normalizeCart(localStorage.getItem("cart") || "[]");
+    let cart = [];
     let checkoutInProgress = false;
     let appliedDiscount = null;
     let subtotal = 0;
@@ -674,6 +674,9 @@
         return;
       }
       currentUser = user;
+      if (!window.TrendoraCart) await new Promise(resolve => window.addEventListener("trendora-cart-ready", resolve, { once: true }));
+      await window.TrendoraAuth?.ready;
+      cart = normalizeCart(window.TrendoraCart?.get?.() || []);
       try {
         const profileSnap = await getDoc(doc(db, "users", user.uid));
         const nestedProfileSnap = await getDoc(doc(db, "users", user.uid, "profile", "info"));
@@ -1039,7 +1042,7 @@
       try {
         // Refresh stale cart prices before committing; customer reviews any changed total.
         const latestItems = await Promise.all(cart.map(async item => { const snap = await getDoc(doc(db, "products", item.id)); if (!snap.exists()) throw new Error(`${item.name} is no longer available.`); return { ...item, price: Number(snap.data().price), name: snap.data().name || item.name, deliveryCharge: Math.max(0, Number(snap.data().deliveryCharge) || 0) }; }));
-        if (latestItems.some((item, i) => item.price !== cart[i].price || item.deliveryCharge !== Number(cart[i].deliveryCharge || 0))) { cart = latestItems; localStorage.setItem("cart", JSON.stringify(cart)); loadCart(); throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again."); }
+        if (latestItems.some((item, i) => item.price !== cart[i].price || item.deliveryCharge !== Number(cart[i].deliveryCharge || 0))) { cart = latestItems; window.TrendoraCart?.save?.(cart); loadCart(); throw new Error("A product price or delivery charge changed. Your total has been updated. Please review and place your order again."); }
         if (paymentMethod === "WALLET") {
           const walletSnap = await getDoc(doc(db, "users", currentUser.uid));
           const availableBalance = Math.max(0, Number(walletSnap.data()?.walletBalance || 0));
@@ -1090,7 +1093,7 @@
           awaitingPayment = true;
           await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
           await window.trendoraDialog.alert(paymentMethod === "WALLET" ? "Order placed and paid with your Trendora Wallet." : "Order placed successfully.");
-          localStorage.removeItem("cart");
+          window.TrendoraCart?.clear?.();
           window.location.href = "orders.html";
         } else if (paymentMethod === "TRENDORA_PAY") {
           const payment = await processTrendoraPay(orderData, { name, phone, email: currentUser.email });
@@ -1105,7 +1108,7 @@
           awaitingPayment = true;
           await sendTrendoraEmail("order-confirmation", currentUser.email, { order: emailOrderPayload(orderData) });
           await window.trendoraDialog.alert("Payment received and verified. Your order has been confirmed.");
-          localStorage.removeItem("cart");
+          window.TrendoraCart?.clear?.();
           window.location.href = "orders.html";
         }
       } catch (error) {

@@ -924,7 +924,7 @@ async function loadProductDetails() {
         return;
       }
       const requestedQty = Math.max(1, Math.min(stock, Number(productQty.value) || 1));
-      let cart = normalizeCart(localStorage.getItem("cart") || "[]");
+      let cart = normalizeCart(window.TrendoraCart?.get?.() || []);
       const existing = cart.find(i => i.id === productId);
       if (existing) {
         if (Number(existing.quantity || 1) + requestedQty > stock) {
@@ -935,7 +935,7 @@ async function loadProductDetails() {
         existing.deliveryCharge = Math.max(0, Number(data.deliveryCharge) || 0);
       }
       else cart.push({ id: productId, name: data.name, price: data.price, quantity: requestedQty, imageUrl: productImages[0], imageUrls: productImages, deliveryCharge: Math.max(0, Number(data.deliveryCharge) || 0) });
-      localStorage.setItem("cart", JSON.stringify(cart));
+      window.TrendoraCart?.save?.(cart);
       window.TrendoraAuth?.refreshLayout();
       showMessage(`${requestedQty} item${requestedQty === 1 ? "" : "s"} added to your cart!`, "success");
     };
